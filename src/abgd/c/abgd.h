@@ -47,7 +47,7 @@ char *name;
 char *seq;
 };
 
-#define MINI(a,b) ((a<=b)?a:b) 
+#define MINI(a,b) ((a<=b)?a:b)
 
 struct DistanceMatrix GetDistMat (int nseq, struct FastaSeq *mesSeqs, int method,float ts_tv);
 struct Peak find_abgd( double *Array, long N, long windsize_min, long windsize_max, short output_slope, double MaxDist ,double SlopeIncrease );
@@ -89,5 +89,8 @@ int callabgd (	double minDist,
 				float ts_tv,
 				int fmeg,
 				char * file);
+
+// Python extension interface
+int foo(int);
 
 #endif
