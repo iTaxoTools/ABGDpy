@@ -23,10 +23,6 @@ abgdmodule = Extension('abgd._abgdc',
                         'src/abgd/c/main_abgd.c',
                         ])
 
-# module1 = Extension('spam',
-#                     include_dirs = ['.'],
-#                     sources = ['src/spammodule.c','src/foo.c'])
-
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 
