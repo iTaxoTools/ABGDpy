@@ -91,6 +91,6 @@ int callabgd (	double minDist,
 				char * file);
 
 // Python extension interface
-int foo(int);
+// int foo(int);
 
 #endif

@@ -1606,13 +1606,3 @@ int main( int argc, char ** argv){
 
 	return 0;
 }
-
-
-/********************
-
-	  Python Extensions
-
-*********************/
-
-
-int foo(int x) { return x+42;}
