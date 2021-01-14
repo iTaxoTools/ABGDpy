@@ -1,2 +1,2 @@
 from ._abgdc import *
-from ._abgd import *
+from ._abgd import run
