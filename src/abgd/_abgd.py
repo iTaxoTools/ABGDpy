@@ -14,4 +14,4 @@ def run(dictionary):
     p.start()
     p.join()
     if p.exitcode != 0:
-        raise RuntimeError('ABGD core internal error, please check logs.')
+        raise RuntimeError('ABGD internal error, please check logs.')

@@ -18,12 +18,42 @@ https://www.python.org/dev/peps/pep-0489/
 static int Increase(const void *v1, const void *v2){  	return (int)SIGN( *((double *)v1) - *((double *)v2));  };
 #undef SIGN
 
-int abgd_core( int argc, char ** argv){
+// Set item = dict[str], do nothing if key does not exist
+int parseItem(PyObject *dict, const char *str, char t, void *var) {
 
+	PyObject *item = PyDict_GetItemString(dict, str);
+	if (item == NULL) return 0;
+	PyObject *value;
+	switch(t){
+		case 's':
+			value = PyUnicode_AsEncodedString(item, "utf-8", "~E~");
+			if (value == NULL) {
+				PyErr_SetString(PyExc_TypeError, "parseItem: Cannot decode string");
+				return -1;
+			}
+			const char *bytes = PyBytes_AS_STRING(value);
+			printf("bytes = %s\n", bytes);
+			*(const char**)var = bytes;
+			Py_XDECREF(value);
+			break;
+		default:
+			PyErr_SetString(PyExc_TypeError, "parseItem: Unexpected type");
+			return -1;
+		}
+	return 0;
+}
+
+static PyObject *
+abgd_main(PyObject *self, PyObject *args) {
+
+  PyObject *dict;
+	PyObject *item;
+  PyObject *str;
 
 	char *file;
-	char dirfiles[128],
-	     file_name[256],
+	// char dirfiles[128],
+	const char *dirfiles = ".";
+	char file_name[256],
 	     ledir[128];
 
 	char *meth=NULL,
@@ -80,81 +110,102 @@ int abgd_core( int argc, char ** argv){
 
 	int ncomp_primary=0;
 
-	*dirfiles='.';
-	*(dirfiles+1)='\0';
+	// *dirfiles='.';
+	// *(dirfiles+1)='\0';
 	ts_tv=2;
 	DEBUG=0;
 	verbose=0;
 
-	while( (c=getopt(argc, argv, "p:P:n:b:o:d:t:vasmhX:")) != -1 ){
-
-		switch(c){
-			case 'a':
-				withallfiles=1;//all files are output  default is just graphic files
-				break;
-
-			case 'p':
-				minDist= atof(optarg);      /* min a priori */
-				break;
-
-			case 'P':
-				MaxDist=atof(optarg);      /* max a priori P */
-				break;
-
-			case 'n':
-				nbStepsABGD= atoi(optarg);               /* nbr of a priori dist */
-				break;
-
-			case 'd':
-				imethode= atoi(optarg);               /* nbr choosing dist method */
-				break;
-			case 'b':
-				nbbids= atoi(optarg);               /* nb bids  */
-				break;
-			case 'o':								/*dir where results files are written*/
-				strcpy(dirfiles,optarg);
-				break;
-
-			case 'X':								/*dir where results files are written*/
-				minSlopeIncrease=atof(optarg);
-				break;
-
-			case 'h':
-                 		usage(argv[0]);
-				break;
-
-			case 'v':
-                 		verbose=1;
-				break;
-			case 't':
-                 		 ts_tv=atof(optarg);		/*trans/trav rate */
-				break;
-
-			case 'm':
-				fmeg=1;			/*if present format mega CVS*/
-			break;
-
-			 case 's':
-			 notreefile=1;
-			 	break;
-
-			case '?':
-			default:
-                 		syntax(argv[0]),exit(1);
-		}
-
+	// Accept a dictionary-like python object
+	if (!PyArg_ParseTuple(args, "O", &dict))
+		return NULL;
+	if (!PyDict_Check(dict)) {
+		PyErr_SetString(PyExc_TypeError, "Argument must be a dictionary");
+		return NULL;
 	}
 
-	if(argc-optind != 1)syntax(argv[0]),exit(1);
-	file=argv[optind];
+	item = PyDict_GetItemString(dict, "file");
+	if (item == NULL) {
+		PyErr_SetString(PyExc_KeyError, "Key not found: file");
+		return NULL;
+	}
+	str = PyUnicode_AsEncodedString(item, "utf-8", "~E~");
+	if (str == NULL) return NULL;
+	const char *bytes = PyBytes_AS_STRING(str);
+	printf("File = %s\n", bytes);
+	Py_XDECREF(str);
 
+	file=bytes;
 
 	f=fopen(file,"r");
 	if (f==NULL)printf("Cannot locate your file. Please check, bye\n"),exit(1);
 
-		if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
+	if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
 	simplename = Built_OutfileName( file );
-//	printf("%s\n",simplename);
+	//	printf("%s\n",simplename);
+
+	if (parseItem(dict, "output", 's', &dirfiles)) return NULL;
+	printf("dirfiles = %s\n", dirfiles);
+
+	// while( (c=getopt(argc, argv, "p:P:n:b:o:d:t:vasmhX:")) != -1 ){
+	//
+	// 	switch(c){
+	// 		case 'a':
+	// 			withallfiles=1;//all files are output  default is just graphic files
+	// 			break;
+	//
+	// 		case 'p':
+	// 			minDist= atof(optarg);      /* min a priori */
+	// 			break;
+	//
+	// 		case 'P':
+	// 			MaxDist=atof(optarg);      /* max a priori P */
+	// 			break;
+	//
+	// 		case 'n':
+	// 			nbStepsABGD= atoi(optarg);               /* nbr of a priori dist */
+	// 			break;
+	//
+	// 		case 'd':
+	// 			imethode= atoi(optarg);               /* nbr choosing dist method */
+	// 			break;
+	// 		case 'b':
+	// 			nbbids= atoi(optarg);               /* nb bids  */
+	// 			break;
+	//
+	// 		case 'o':								/*dir where results files are written*/
+	// 			strcpy(dirfiles,optarg);
+	// 			break;
+	//
+	// 		case 'X':								/*dir where results files are written*/
+	// 			minSlopeIncrease=atof(optarg);
+	// 			break;
+	//
+	// 		case 'h':
+  //                		usage(argv[0]);
+	// 			break;
+	//
+	// 		case 'v':
+  //                		verbose=1;
+	// 			break;
+	// 		case 't':
+  //                		 ts_tv=atof(optarg);		/*trans/trav rate */
+	// 			break;
+	//
+	// 		case 'm':
+	// 			fmeg=1;			/*if present format mega CVS*/
+	// 		break;
+	//
+	// 		 case 's':
+	// 		 notreefile=1;
+	// 		 	break;
+	//
+	// 		case '?':
+	// 		default:
+  //                		syntax(argv[0]),exit(1);
+	// 	}
+	//
+	// }
 
 	mySpecies=malloc(sizeof(int)*nbStepsABGD+1);
 	specInit=malloc(sizeof(int)*nbStepsABGD+1);
@@ -513,9 +564,9 @@ int abgd_core( int argc, char ** argv){
 
 	free(mask);
 
-
-
-	return 0;
+  //return PyLong_FromLong(sts);
+  Py_INCREF(Py_None);
+  return Py_None;
 }
 
 /*
@@ -531,42 +582,6 @@ int abgd_core( int argc, char ** argv){
 \t-X #  : mininmum Slope Increase (default is 1.5)\n\
 \t-t #  : transition/transversion (for Kimura) default:2\n");
 */
-
-static PyObject *
-abgd_main(PyObject *self, PyObject *args)
-{
-    PyObject *dict;
-    PyObject *file;
-
-    // Accept a dictionary-like python object
-    if (!PyArg_ParseTuple(args, "O", &dict))
-      return NULL;
-    if (!PyDict_Check(dict)) {
-      PyErr_SetString(PyExc_TypeError, "Not a dictionary");
-      return NULL;
-    }
-    file = PyDict_GetItemString(dict, "file");
-    if (file == NULL) {
-      PyErr_SetString(PyExc_KeyError, "Key not found: file");
-      return NULL;
-    }
-
-    PyObject* str = PyUnicode_AsEncodedString(file, "utf-8", "~E~");
-    if (str == NULL) return NULL;
-    const char *bytes = PyBytes_AS_STRING(str);
-    printf("File = %s\n", bytes);
-
-    const char *argv[2];
-    argv[0] = "abgd";
-    argv[1] = bytes;
-    abgd_core(2, argv);
-
-    Py_XDECREF(str);
-
-    //return PyLong_FromLong(sts);
-    Py_INCREF(Py_None);
-    return Py_None;
-}
 
 static PyObject *
 abgd_foo(PyObject *self, PyObject *args)
