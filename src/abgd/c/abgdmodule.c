@@ -18,26 +18,55 @@ https://www.python.org/dev/peps/pep-0489/
 static int Increase(const void *v1, const void *v2){  	return (int)SIGN( *((double *)v1) - *((double *)v2));  };
 #undef SIGN
 
-// Set item = dict[str], do nothing if key does not exist
+// Set var = dict[str], do nothing if key does not exist.
+// On failure, sets error indicator and returns -1.
+// Return 0 on success.
 int parseItem(PyObject *dict, const char *str, char t, void *var) {
 
-	PyObject *item = PyDict_GetItemString(dict, str);
-	if (item == NULL) return 0;
+	PyObject *item;
 	PyObject *value;
 	switch(t){
+		case 'b':
+			item = PyDict_GetItemString(dict, str);
+			if (item == NULL) return 0;
+			*(int *)var = PyObject_IsTrue(item);
+			if (*(int *)var == -1) {
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected boolean value for key '%s'.", str);
+				return -1;
+			}
+			break;
+		case 'i':
+			item = PyDict_GetItemString(dict, str);
+			if (item == NULL) return 0;
+			*(int *)var = (int) PyLong_AsLong(item);
+			if (PyErr_Occurred()) {
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected integer value for key '%s'.", str);
+				return -1;
+			}
+			break;
+		case 'f':
+			item = PyDict_GetItemString(dict, str);
+			if (item == NULL) return 0;
+			*(double *)var = (double) PyFloat_AsDouble(item);
+			if (PyErr_Occurred()) {
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected float value for key '%s'.", str);
+				return -1;
+			}
+			break;
 		case 's':
+			item = PyDict_GetItemString(dict, str);
+			if (item == NULL) return 0;
 			value = PyUnicode_AsEncodedString(item, "utf-8", "~E~");
 			if (value == NULL) {
-				PyErr_SetString(PyExc_TypeError, "parseItem: Cannot decode string");
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected string value for key '%s'.", str);
 				return -1;
 			}
 			const char *bytes = PyBytes_AS_STRING(value);
-			printf("bytes = %s\n", bytes);
-			*(const char**)var = bytes;
+			*(const char **)var = bytes;
 			Py_XDECREF(value);
 			break;
 		default:
-			PyErr_SetString(PyExc_TypeError, "parseItem: Unexpected type");
+			PyErr_Format(PyExc_TypeError, "parseItem: Unexpected type: %c", t);
 			return -1;
 		}
 	return 0;
@@ -126,7 +155,7 @@ abgd_main(PyObject *self, PyObject *args) {
 
 	item = PyDict_GetItemString(dict, "file");
 	if (item == NULL) {
-		PyErr_SetString(PyExc_KeyError, "Key not found: file");
+		PyErr_SetString(PyExc_KeyError, "Mandatory key not found: file");
 		return NULL;
 	}
 	str = PyUnicode_AsEncodedString(item, "utf-8", "~E~");
@@ -144,8 +173,14 @@ abgd_main(PyObject *self, PyObject *args) {
 	simplename = Built_OutfileName( file );
 	//	printf("%s\n",simplename);
 
-	if (parseItem(dict, "output", 's', &dirfiles)) return NULL;
+	if (parseItem(dict, "out", 's', &dirfiles)) return NULL;
 	printf("dirfiles = %s\n", dirfiles);
+	if (parseItem(dict, "all", 'b', &withallfiles)) return NULL;
+	printf("withallfiles = %i\n", withallfiles);
+	if (parseItem(dict, "steps", 'i', &nbStepsABGD)) return NULL;
+	printf("nbStepsABGD = %i\n", nbStepsABGD);
+	if (parseItem(dict, "min", 'f', &minDist)) return NULL;
+	printf("minDist = %f\n", minDist);
 
 	// while( (c=getopt(argc, argv, "p:P:n:b:o:d:t:vasmhX:")) != -1 ){
 	//
