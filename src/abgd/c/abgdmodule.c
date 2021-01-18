@@ -169,78 +169,46 @@ abgd_main(PyObject *self, PyObject *args) {
 	f=fopen(file,"r");
 	if (f==NULL)printf("Cannot locate your file. Please check, bye\n"),exit(1);
 
-	if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
 	simplename = Built_OutfileName( file );
 	//	printf("%s\n",simplename);
 
 	if (parseItem(dict, "out", 's', &dirfiles)) return NULL;
-	printf("dirfiles = %s\n", dirfiles);
-	if (parseItem(dict, "all", 'b', &withallfiles)) return NULL;
-	printf("withallfiles = %i\n", withallfiles);
-	if (parseItem(dict, "steps", 'i', &nbStepsABGD)) return NULL;
-	printf("nbStepsABGD = %i\n", nbStepsABGD);
-	if (parseItem(dict, "min", 'f', &minDist)) return NULL;
-	printf("minDist = %f\n", minDist);
+	printf("> dirfiles = %s\n", dirfiles);
 
-	// while( (c=getopt(argc, argv, "p:P:n:b:o:d:t:vasmhX:")) != -1 ){
-	//
-	// 	switch(c){
-	// 		case 'a':
-	// 			withallfiles=1;//all files are output  default is just graphic files
-	// 			break;
-	//
-	// 		case 'p':
-	// 			minDist= atof(optarg);      /* min a priori */
-	// 			break;
-	//
-	// 		case 'P':
-	// 			MaxDist=atof(optarg);      /* max a priori P */
-	// 			break;
-	//
-	// 		case 'n':
-	// 			nbStepsABGD= atoi(optarg);               /* nbr of a priori dist */
-	// 			break;
-	//
-	// 		case 'd':
-	// 			imethode= atoi(optarg);               /* nbr choosing dist method */
-	// 			break;
-	// 		case 'b':
-	// 			nbbids= atoi(optarg);               /* nb bids  */
-	// 			break;
-	//
-	// 		case 'o':								/*dir where results files are written*/
-	// 			strcpy(dirfiles,optarg);
-	// 			break;
-	//
-	// 		case 'X':								/*dir where results files are written*/
-	// 			minSlopeIncrease=atof(optarg);
-	// 			break;
-	//
-	// 		case 'h':
-  //                		usage(argv[0]);
-	// 			break;
-	//
-	// 		case 'v':
-  //                		verbose=1;
-	// 			break;
-	// 		case 't':
-  //                		 ts_tv=atof(optarg);		/*trans/trav rate */
-	// 			break;
-	//
-	// 		case 'm':
-	// 			fmeg=1;			/*if present format mega CVS*/
-	// 		break;
-	//
-	// 		 case 's':
-	// 		 notreefile=1;
-	// 		 	break;
-	//
-	// 		case '?':
-	// 		default:
-  //                		syntax(argv[0]),exit(1);
-	// 	}
-	//
-	// }
+	if (parseItem(dict, "method", 'i', &imethode)) return NULL;
+	printf("> imethode = %i\n", imethode);
+
+	if (parseItem(dict, "steps", 'i', &nbStepsABGD)) return NULL;
+	printf("> nbStepsABGD = %i\n", nbStepsABGD);
+
+	if (parseItem(dict, "bids", 'i', &nbbids)) return NULL;
+	printf("> nbbids = %i\n", nbbids);
+
+	if (parseItem(dict, "min", 'f', &minDist)) return NULL;
+	printf("> minDist = %f\n", minDist);
+
+	if (parseItem(dict, "max", 'f', &MaxDist)) return NULL;
+	printf("> MaxDist = %f\n", MaxDist);
+
+	if (parseItem(dict, "slope", 'f', &minSlopeIncrease)) return NULL;
+	printf("> minSlopeIncrease = %f\n", minSlopeIncrease);
+
+	if (parseItem(dict, "rate", 'f', &ts_tv)) return NULL;
+	printf("> ts_tv = %f\n", ts_tv);
+
+	if (parseItem(dict, "mega", 'b', &fmeg)) return NULL;
+	printf("> fmeg = %i\n", fmeg);
+
+	if (parseItem(dict, "all", 'b', &withallfiles)) return NULL;
+	printf("> withallfiles = %i\n", withallfiles);
+
+	if (parseItem(dict, "verbose", 'b', &verbose)) return NULL;
+	printf("> verbose = %i\n", verbose);
+
+	if (parseItem(dict, "simple", 'b', &notreefile)) return NULL;
+	printf("> notreefile = %i\n", notreefile);
+
+	if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
 
 	mySpecies=malloc(sizeof(int)*nbStepsABGD+1);
 	specInit=malloc(sizeof(int)*nbStepsABGD+1);
