@@ -31,7 +31,7 @@ int parseItem(PyObject *dict, const char *str, char t, void *var) {
 			if (item == NULL) return 0;
 			*(int *)var = PyObject_IsTrue(item);
 			if (*(int *)var == -1) {
-				PyErr_Format(PyExc_TypeError, "parseItem: Expected boolean value for key '%s'.", str);
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected boolean value for key '%s'", str);
 				return -1;
 			}
 			break;
@@ -40,7 +40,7 @@ int parseItem(PyObject *dict, const char *str, char t, void *var) {
 			if (item == NULL) return 0;
 			*(int *)var = (int) PyLong_AsLong(item);
 			if (PyErr_Occurred()) {
-				PyErr_Format(PyExc_TypeError, "parseItem: Expected integer value for key '%s'.", str);
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected integer value for key '%s'", str);
 				return -1;
 			}
 			break;
@@ -49,7 +49,7 @@ int parseItem(PyObject *dict, const char *str, char t, void *var) {
 			if (item == NULL) return 0;
 			*(double *)var = (double) PyFloat_AsDouble(item);
 			if (PyErr_Occurred()) {
-				PyErr_Format(PyExc_TypeError, "parseItem: Expected float value for key '%s'.", str);
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected float value for key '%s'", str);
 				return -1;
 			}
 			break;
@@ -58,7 +58,7 @@ int parseItem(PyObject *dict, const char *str, char t, void *var) {
 			if (item == NULL) return 0;
 			value = PyUnicode_AsEncodedString(item, "utf-8", "~E~");
 			if (value == NULL) {
-				PyErr_Format(PyExc_TypeError, "parseItem: Expected string value for key '%s'.", str);
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected string value for key '%s'", str);
 				return -1;
 			}
 			const char *bytes = PyBytes_AS_STRING(value);
@@ -79,8 +79,9 @@ abgd_main(PyObject *self, PyObject *args) {
 	PyObject *item;
   PyObject *str;
 
-	char *file;
+	// char *file;
 	// char dirfiles[128],
+	const char *file = "";
 	const char *dirfiles = ".";
 	char file_name[256],
 	     ledir[128];
@@ -149,26 +150,23 @@ abgd_main(PyObject *self, PyObject *args) {
 	if (!PyArg_ParseTuple(args, "O", &dict))
 		return NULL;
 	if (!PyDict_Check(dict)) {
-		PyErr_SetString(PyExc_TypeError, "Argument must be a dictionary");
+		PyErr_SetString(PyExc_TypeError, "abgd_main: Argument must be a dictionary");
 		return NULL;
 	}
 
-	item = PyDict_GetItemString(dict, "file");
-	if (item == NULL) {
-		PyErr_SetString(PyExc_KeyError, "Mandatory key not found: file");
+	if (parseItem(dict, "file", 's', &file)) return NULL;
+	printf("> file = %s\n", file);
+
+	if (file[0] == '\0') {
+		PyErr_SetString(PyExc_KeyError, "abgd_main: Mandatory non-empty key: 'file'");
 		return NULL;
 	}
-	str = PyUnicode_AsEncodedString(item, "utf-8", "~E~");
-	if (str == NULL) return NULL;
-	const char *bytes = PyBytes_AS_STRING(str);
-	printf("File = %s\n", bytes);
-	Py_XDECREF(str);
-
-	file=bytes;
 
 	f=fopen(file,"r");
-	if (f==NULL)printf("Cannot locate your file. Please check, bye\n"),exit(1);
-
+	if (f==NULL) {
+		PyErr_Format(PyExc_FileNotFoundError, "abgd_main: Input file not found: '%s'", file);
+		return NULL;
+	}
 	simplename = Built_OutfileName( file );
 	//	printf("%s\n",simplename);
 

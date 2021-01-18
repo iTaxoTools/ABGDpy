@@ -4,6 +4,8 @@ The origin code was slightly altered for the wrapper to work:
 - main_abgd.h was created
 - abgdmodule.c contains abgd_main(): a modified copy of main()
 - argument passing is done via python dictionary
+- dirfiles was changed to const char
+- replaced filenotfound exit with exception
 
 
 ABGD command line: Brief Install and How to Description
