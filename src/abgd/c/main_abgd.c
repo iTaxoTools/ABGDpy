@@ -1092,6 +1092,3 @@ void usage(char *arg0)
 
 	exit(1);
 }
-
-
-

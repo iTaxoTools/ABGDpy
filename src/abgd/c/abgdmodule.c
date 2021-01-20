@@ -21,7 +21,8 @@ static int Increase(const void *v1, const void *v2){  	return (int)SIGN( *((doub
 // Set var = dict[str], do nothing if key does not exist.
 // On failure, sets error indicator and returns -1.
 // Return 0 on success.
-int parseItem(PyObject *dict, const char *str, char t, void *var) {
+// Beware: parsing strings allocates memory!
+int parseItem(PyObject *dict, const char *str, const char t, void *var) {
 
 	PyObject *item;
 	PyObject *value;
@@ -62,7 +63,8 @@ int parseItem(PyObject *dict, const char *str, char t, void *var) {
 				return -1;
 			}
 			const char *bytes = PyBytes_AS_STRING(value);
-			*(const char **)var = bytes;
+			*(const char **)var = malloc(strlen (bytes) + 1);
+			strcpy(*(const char **)var, bytes);
 			Py_XDECREF(value);
 			break;
 		default:
@@ -81,8 +83,9 @@ abgd_main(PyObject *self, PyObject *args) {
 
 	// char *file;
 	// char dirfiles[128],
-	const char *file = "";
-	const char *dirfiles = ".";
+	const char *file = 0;
+	const char *dirfiles = 0;
+	const char *dirfiles_default = ".";
 	char file_name[256],
 	     ledir[128];
 
@@ -157,8 +160,8 @@ abgd_main(PyObject *self, PyObject *args) {
 	if (parseItem(dict, "file", 's', &file)) return NULL;
 	printf("> file = %s\n", file);
 
-	if (file[0] == '\0') {
-		PyErr_SetString(PyExc_KeyError, "abgd_main: Mandatory non-empty key: 'file'");
+	if (!file) {
+		PyErr_SetString(PyExc_KeyError, "abgd_main: Mandatory key: 'file'");
 		return NULL;
 	}
 
@@ -171,6 +174,7 @@ abgd_main(PyObject *self, PyObject *args) {
 	//	printf("%s\n",simplename);
 
 	if (parseItem(dict, "out", 's', &dirfiles)) return NULL;
+	if (!dirfiles) dirfiles = dirfiles_default;
 	printf("> dirfiles = %s\n", dirfiles);
 
 	if (parseItem(dict, "method", 'i', &imethode)) return NULL;
@@ -364,6 +368,8 @@ abgd_main(PyObject *self, PyObject *args) {
 				printf("problem opening result file %s\n",file_name), exit(1);
 			sprintf(file_name,"%s/%s.partinit.%d.tree",dirfiles,simplename,myD+1);
 			f2=fopen(file_name,"w");
+			if (f2==NULL)
+				printf("problem opening result file %s\n",file_name), exit(1);
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0);
 			fclose(fout);
 			/* reseting newick string to original */
@@ -483,6 +489,9 @@ abgd_main(PyObject *self, PyObject *args) {
 			sprintf(file_name,"%s/%s.part.%d.tree",dirfiles,simplename,myD+1);
 			f2=fopen(file_name,"w");
 
+			if (fout==NULL)
+				printf("problem opening result file %s\n",file_name), exit(1);
+
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0);
 
 			fclose(fout);
@@ -566,6 +575,9 @@ abgd_main(PyObject *self, PyObject *args) {
 
 	free(mask);
 
+	if (file) free(file);
+	if (dirfiles!=dirfiles_default) free(dirfiles);
+
   //return PyLong_FromLong(sts);
   Py_INCREF(Py_None);
   return Py_None;
@@ -582,11 +594,37 @@ abgd_foo(PyObject *self, PyObject *args)
     return PyLong_FromLong(res);
 }
 
+static PyObject *
+abgd_foo2(PyObject *self, PyObject *args)
+{
+    const char *dir;
+
+    if (!PyArg_ParseTuple(args, "s", &dir))
+        return NULL;
+		printf("foo dir = %s\n", dir);
+
+		char file_name[128];
+		sprintf(file_name,"%s/foo.bar", dir);
+		printf("foo file_name = %s\n", file_name);
+
+		FILE *file;
+		file=fopen(file_name,"w");
+		if (file != NULL)
+		{
+		fprintf(stderr,"Matrix dist is written as distmat.txt\n");
+		fprintf(file,"BARBARA\n");
+		fclose (file);
+		}
+    return PyLong_FromLong(1);
+}
+
 static PyMethodDef AbgdMethods[] = {
     {"main",  abgd_main, METH_VARARGS,
      "Run ABGD for given parameters."},
     {"foo",  abgd_foo, METH_VARARGS,
      "Add 42."},
+    {"foo2",  abgd_foo2, METH_VARARGS,
+     "Write temp file."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
