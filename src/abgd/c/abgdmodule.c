@@ -176,11 +176,11 @@ abgd_main(PyObject *self, PyObject *args) {
 	if (parseItem(dict, "method", 'i', &imethode)) return NULL;
 	printf("> imethode = %i\n", imethode);
 
-	if (parseItem(dict, "steps", 'i', &nbStepsABGD)) return NULL;
-	printf("> nbStepsABGD = %i\n", nbStepsABGD);
-
 	if (parseItem(dict, "bids", 'i', &nbbids)) return NULL;
 	printf("> nbbids = %i\n", nbbids);
+
+	if (parseItem(dict, "steps", 'i', &nbStepsABGD)) return NULL;
+	printf("> nbStepsABGD = %i\n", nbStepsABGD);
 
 	if (parseItem(dict, "min", 'f', &minDist)) return NULL;
 	printf("> minDist = %f\n", minDist);
@@ -405,7 +405,8 @@ abgd_main(PyObject *self, PyObject *args) {
 
 				reset_composante( &recursive_comp );                     /* needed for the free in case of no new group */
 
-				bzero( (void *)mask, (size_t)distmat.n*sizeof(char) );   /* built mask used to only consider some cells of the matrix */
+				//bzero( (void *)mask, (size_t)distmat.n*sizeof(char) );   /* built mask used to only consider some cells of the matrix */
+				memset((void *)mask, 0, (size_t)distmat.n*sizeof(char));	/* Replaces the above */
 				for(b=0;b<comp.n_in_comp[a]; b++)
 					mask[ comp.comp[a][b] ] = 1;
 
@@ -569,20 +570,6 @@ abgd_main(PyObject *self, PyObject *args) {
   Py_INCREF(Py_None);
   return Py_None;
 }
-
-/*
-\t-m    : if present the distance Matrix is supposed to be MEGA CVS (other formats are guessed)\n\
-\t-a    : output all partitions and tree files (default only graph files)\n\
-\t-s    : output all partitions in 's'imple results txt files\n\
-\t-p #  : minimal a priori value (default is 0.001) -Pmin-\n\
-\t-P #  : maximal a priori value (default is 0.1) -Pmax-\n\
-\t-n #  : number of steps in [Pmin,Pmax] (default is 10)\n\
-\t-b #	: number of bids for graphic histogram of distances (default is 20\n\
-\t-d #  : distance (0: Kimura-2P, 1: Jukes-Cantor --default--, 2: Tamura-Nei 3:simple distance)\n\
-\t-o #  : existent directory where results files are written (default is .)\n\
-\t-X #  : mininmum Slope Increase (default is 1.5)\n\
-\t-t #  : transition/transversion (for Kimura) default:2\n");
-*/
 
 static PyObject *
 abgd_foo(PyObject *self, PyObject *args)

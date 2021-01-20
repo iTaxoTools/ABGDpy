@@ -1,12 +1,61 @@
 
-The origin code was slightly altered for the wrapper to work:
-- main() is never called
-- main_abgd.h was created
-- abgdmodule.c contains abgd_main(): a modified copy of main()
-- argument passing is done via python dictionary
-- dirfiles was changed to const char
-- replaced filenotfound exit with exception
+This is a module that wraps ABGD for use with Python.
 
+Original ABGD:	https://bioinfo.mnhn.fr/abi/public/abgd/
+Source code:	https://bioinfo.mnhn.fr/abi/public/abgd/last.tgz
+
+
+## Usage example
+
+```
+import _abgdc
+_abgdc.main({'file':'test.fas','all':True})
+```
+
+## Arguments
+
+The following keys are checked in the provided dictionary: (TBA)
+
+- file:		accepted formats: fasta alignment, phylip distance file, MEGA distance file (see below)
+- out:		existent directory where results files are written
+- method:	distance (0: Kimura-2P, 1: Jukes-Cantor --default--, 3: simple distance)
+- bids:		number of bids for graphic histogram of distances (defau
+- steps:	number of steps in [Pmin,Pmax] (default is 10)
+- min:		minimal a priori value (default is 0.001) -Pmin-
+- max:		maximal a priori value (default is 0.1) -Pmax-lt is 20)
+- slope:	mininmum Slope Increase (default is 1.5)
+- rate:		transition/transversion (for Kimura 3-P distance) default:2
+- mega:		if True, the distance Matrix is supposed to be MEGA CVS (other formats are guessed)
+- all:		output all partitions and tree files (default only graph files)
+- verbose:	verbose mode (outputs a lot of values)
+- simple:	option for only groups
+
+
+## Warning
+
+This module often uses exit() to abort in case of error, shutting down the whole Python process that called it.
+It is also possible that allocated memory is not freed in such cases. For this reason, 
+it is recommended to run _abgdc.main() on its own subprocess.
+To verify that no errors occured, check that the process exitcode is 0.
+
+
+## Changes
+
+The original ABGD code was also slightly altered for the cross-platform wrapper to compile:
+
+- Create `main_abgd.h`: header file exposing `main_abgd.c` functions, used by `abgdmodule.c/abgd_main`
+- Remove header includes: `strings.h` `unistd.h` `dirent.h`: linux-only libraries
+- Remove function: `main_abgd.c/main`: functionality copied to `abgdmodule.c/abgd_main`
+- Remove function: `abgdCore.c/print_groups_newick`: used non-standard `strcasestr`, function not called anywhere
+- Edit function: `main_abgd.c/readMatrixMega`: used non-standard `strcasestr`: replaced with `toupper` and `strstr`
+- Add function: `abgdmodule.c/abgd_main`: copied from `main_abgd.c/main` with the following changes:
+-- Accept a Python dictionary object as a single argument
+-- Change variable `dirfiles` into a `const char`
+-- Replace some `exit(1)` occurences with Python exceptions
+-- For more: diff files
+
+
+## Original README file
 
 ABGD command line: Brief Install and How to Description
 

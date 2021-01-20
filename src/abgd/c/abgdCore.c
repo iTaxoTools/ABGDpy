@@ -38,11 +38,8 @@
 #include <time.h>
 #include <float.h>
 #include <math.h>
-#include <unistd.h>
-#include <strings.h>
 #include <string.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>  /* errno */
 #include "abgd.h"
@@ -1254,41 +1251,6 @@ void clean_str(char *ch)
 	}
 
 
-
-void print_groups_newick( struct Composante my_comp , struct DistanceMatrix distmat  ,char *lastring, FILE *f2){
-
-
-	int i,j,k=0;
-	char nom[100],*bou;
-	char chiffre[10];
-//	printf("icxi %s \n",lastring);
-	for(i=0; i<my_comp.nc; i++){
-		
-		for(j=0; j< my_comp.n_in_comp[i]; j++)
-			{
-			sprintf(nom,"%s",distmat.names[my_comp.comp[i][j]]);
-			bou=strcasestr(lastring,nom); 
-			
-			if (bou==NULL)//should never arrives
-				{printf("%s non trouvé ds \n%s \n",nom,lastring);html_error(255);}
-			bou+=strlen(nom)+1;	
-			sprintf(chiffre,"%d",i+1);
-			*bou++='|';*bou++='g';*bou++='r';*bou++='o';*bou++='u';*bou++='p';*bou++=' ';
-			for (k=0;k<strlen(chiffre);k++)*bou++=chiffre[k];
-			}
-
-	
-	}
-//		i=-1;
-//	while (lastring[++i]!='\0') //write a newick file without the spaces i've added before pb erase all spaces
-//		if (lastring[i]!=' ')
-//			fprintf(f2,"%c",lastring[i]);
-//	fprintf(f2,"\n");		
-clean_str(lastring);
-fprintf(f2,"%s\n",lastring);
-
-
-}
 
 
 void print_distmat(  struct DistanceMatrix distmat  ){
