@@ -51,7 +51,7 @@ setup(
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#summary
-    description='A port of ABGD for Python',  # Optional
+    description='A Python wrapper for ABGD',  # Optional
 
     # This is an optional longer description of your project that represents
     # the body of text which users will see when they visit PyPI.
@@ -184,6 +184,8 @@ setup(
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     # data_files=[('my_data', ['data/data_file'])],  # Optional
 
+    include_package_data=True,
+    
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # `pip` to create the appropriate form of executable for the target

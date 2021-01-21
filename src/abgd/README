@@ -19,12 +19,12 @@ The following keys are checked in the provided dictionary: (TBA)
 - file:		accepted formats: fasta alignment, phylip distance file, MEGA distance file (see below)
 - out:		existent directory where results files are written
 - method:	distance (0: Kimura-2P, 1: Jukes-Cantor --default--, 3: simple distance)
-- bids:		number of bids for graphic histogram of distances (defau
+- bids:		number of bids for graphic histogram of distances (default is 20)
 - steps:	number of steps in [Pmin,Pmax] (default is 10)
 - min:		minimal a priori value (default is 0.001) -Pmin-
 - max:		maximal a priori value (default is 0.1) -Pmax-lt is 20)
 - slope:	mininmum Slope Increase (default is 1.5)
-- rate:		transition/transversion (for Kimura 3-P distance) default:2
+- rate:		transition/transversion (for Kimura 3-P distance) default:2.0
 - mega:		if True, the distance Matrix is supposed to be MEGA CVS (other formats are guessed)
 - all:		output all partitions and tree files (default only graph files)
 - verbose:	verbose mode (outputs a lot of values)
@@ -34,7 +34,7 @@ The following keys are checked in the provided dictionary: (TBA)
 ## Warning
 
 This module often uses exit() to abort in case of error, shutting down the whole Python process that called it.
-It is also possible that allocated memory is not freed in such cases. For this reason, 
+It is also possible that allocated memory is not freed in such cases. For this reason,
 it is recommended to run _abgdc.main() on its own subprocess.
 To verify that no errors occured, check that the process exitcode is 0.
 

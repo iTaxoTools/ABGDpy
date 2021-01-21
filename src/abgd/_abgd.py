@@ -1,9 +1,11 @@
 from multiprocessing import Process
 
+import importlib.resources
 import tempfile as _tempfile
 import shutil as _shutil
 
 from . import _abgdc
+from . import param
 
 class BarcodeAnalysis():
     """
@@ -16,13 +18,14 @@ class BarcodeAnalysis():
     def __setstate__(self, state):
         self.__dict__ = state
 
-    def __init__(self, file, params):
+    def __init__(self, file):
         """
         """
         self.file = file
-        self.params = params
         self.target = None
         self.results = None
+        with importlib.resources.open_text(__package__, 'params.json') as data:
+            self.param = param.ParamList(data)
 
     def fetch(self, destination):
         """
@@ -37,16 +40,16 @@ class BarcodeAnalysis():
         Run the ABGD core with given params,
         save results to a temporary directory.
         """
-        self.params['file'] = self.file
+        self.param['file'] = self.file
         if self.target is not None:
-            self.params['out'] = self.target
+            self.param['out'] = self.target
 
-        _abgdc.main(self.params)
+        _abgdc.main(self.param)
 
         self.results = self.target
-        del self.params['file']
-        if self.params.get('out') is not None:
-            del self.params['out']
+        del self.param['file']
+        if self.param.get('out') is not None:
+            del self.param['out']
 
 
 def worker(analysis):
