@@ -40,16 +40,13 @@ class BarcodeAnalysis():
         Run the ABGD core with given params,
         save results to a temporary directory.
         """
-        self.param['file'] = self.file
+        kwargs = self.param.as_dictionary()
+        kwargs['file'] = self.file
         if self.target is not None:
-            self.param['out'] = self.target
-
-        _abgdc.main(self.param)
-
+            kwargs['out'] = self.target
+        print(kwargs)
+        _abgdc.main(kwargs)
         self.results = self.target
-        del self.param['file']
-        if self.param.get('out') is not None:
-            del self.param['out']
 
 
 def worker(analysis):

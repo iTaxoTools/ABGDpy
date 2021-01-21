@@ -8,15 +8,15 @@
         "type":     "bool",
         "default":  false
       },
-      "all": {
-        "label":    "All",
-        "doc":      "Output all partitions and tree files.",
-        "type":     "bool",
-        "default":  false
-      },
       "simple": {
-        "label":    "Simple",
-        "doc":      "Option for only groups.",
+        "label":    "Generate Partitions",
+        "doc":      "Generate partition files.",
+        "type":     "bool",
+        "default":  true
+      },
+      "all": {
+        "label":    "Generate Trees",
+        "doc":      "Generate all partitions and tree files.",
         "type":     "bool",
         "default":  false
       }
@@ -41,7 +41,7 @@
         "label":    "Steps",
         "doc":      "Number of examined steps in the range of [Pmin, Pmax].",
         "type":     "int",
-        "default":  20
+        "default":  10
       },
       "slope": {
         "label":    "X",
@@ -58,7 +58,7 @@
         "label":    "Method",
         "doc":      "If you enter a fasta file you can select your distance.",
         "type":     "list",
-        "default":  0,
+        "default":  1,
         "data": {
           "items":  [0,1,3],
           "labels": ["Jukes-Cantor(JC69)","Kimura (K80)","Simple Distance"]

@@ -92,6 +92,14 @@ class ParamCategory(OrderedDict):
                     state[4])
         return newstate
 
+    def as_dictionary(self):
+        """Return key/value pairs of category parameters"""
+        dictionary = {}
+        for param in self.keys():
+            dictionary[param] = self[param].value
+        return dictionary
+
+
 class ParamList(OrderedDict):
     """Dictionary of all categories."""
 
@@ -129,3 +137,15 @@ class ParamList(OrderedDict):
                     None,
                     state[4])
         return newstate
+
+    def as_dictionary(self):
+        """Return key/value pairs for all categories"""
+        dictionary = {}
+        for category in self.keys():
+            category_dictionary = self[category].as_dictionary()
+            for param in category_dictionary.keys():
+                if dictionary.get(param) is not None:
+                    raise RuntimeError("Duplicate key: "+param)
+                else:
+                    dictionary[param] = category_dictionary[param]
+        return dictionary

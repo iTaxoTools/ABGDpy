@@ -45,10 +45,19 @@ int parseItem(PyObject *dict, const char *str, const char t, void *var) {
 				return -1;
 			}
 			break;
-		case 'f':
+		case 'd':
 			item = PyDict_GetItemString(dict, str);
 			if (item == NULL) return 0;
 			*(double *)var = (double) PyFloat_AsDouble(item);
+			if (PyErr_Occurred()) {
+				PyErr_Format(PyExc_TypeError, "parseItem: Expected double value for key '%s'", str);
+				return -1;
+			}
+			break;
+		case 'f':
+			item = PyDict_GetItemString(dict, str);
+			if (item == NULL) return 0;
+			*(float *)var = (float) PyFloat_AsDouble(item);
 			if (PyErr_Occurred()) {
 				PyErr_Format(PyExc_TypeError, "parseItem: Expected float value for key '%s'", str);
 				return -1;
@@ -186,13 +195,13 @@ abgd_main(PyObject *self, PyObject *args) {
 	if (parseItem(dict, "steps", 'i', &nbStepsABGD)) return NULL;
 	printf("> nbStepsABGD = %i\n", nbStepsABGD);
 
-	if (parseItem(dict, "min", 'f', &minDist)) return NULL;
+	if (parseItem(dict, "min", 'd', &minDist)) return NULL;
 	printf("> minDist = %f\n", minDist);
 
-	if (parseItem(dict, "max", 'f', &MaxDist)) return NULL;
+	if (parseItem(dict, "max", 'd', &MaxDist)) return NULL;
 	printf("> MaxDist = %f\n", MaxDist);
 
-	if (parseItem(dict, "slope", 'f', &minSlopeIncrease)) return NULL;
+	if (parseItem(dict, "slope", 'd', &minSlopeIncrease)) return NULL;
 	printf("> minSlopeIncrease = %f\n", minSlopeIncrease);
 
 	if (parseItem(dict, "rate", 'f', &ts_tv)) return NULL;
