@@ -88,12 +88,13 @@ abgd_main(PyObject *self, PyObject *args) {
 
   PyObject *dict;
 	PyObject *item;
-  PyObject *str;
+	const char *separator_str = NULL;
+	char separator;
 
 	// char *file;
 	// char dirfiles[128],
-	const char *file = 0;
-	const char *dirfiles = 0;
+	const char *file = NULL;
+	const char *dirfiles = NULL;
 	const char *dirfiles_default = ".";
 	char file_name[256],
 	     ledir[128];
@@ -157,6 +158,14 @@ abgd_main(PyObject *self, PyObject *args) {
 	ts_tv=2;
 	DEBUG=0;
 	verbose=0;
+
+	if (parseItem(PyModule_GetDict(self), "separator", 's', &separator_str)) return NULL;
+	if (!separator_str) {
+		PyErr_SetString(PyExc_TypeError, "abgd_main: Module global not found: 'separator'");
+		return NULL;
+	}
+	separator = separator_str[0];
+	printf("> separator = %c\n", separator);
 
 	// Accept a dictionary-like python object
 	if (!PyArg_ParseTuple(args, "O", &dict))
@@ -302,7 +311,7 @@ abgd_main(PyObject *self, PyObject *args) {
 	mask=(char*)malloc( distmat.n*sizeof(char) );
 	if(!mask)fprintf(stderr, "main: cannot allocate mask, bye<BR>\n");
 	if (verbose)fprintf(stderr,"Writing histogram files\n");
-	sprintf(file_name,"%s/%s",dirfiles,simplename);
+	sprintf(file_name,"%s%c%s",dirfiles,separator,simplename);
  	createSVGhisto(file_name,distmat,nbbids);
 	if (verbose)fprintf(stderr," histogram Done\nBegining ABGD--->\n");
 
@@ -371,11 +380,11 @@ abgd_main(PyObject *self, PyObject *args) {
 		if (withallfiles)
 			{
 
-			sprintf(file_name,"%s/%s.partinit.%d.txt",dirfiles,simplename,myD+1);
+			sprintf(file_name,"%s%c%s.partinit.%d.txt",dirfiles,separator,simplename,myD+1);
 			fout=fopen(file_name,"w");
 			if (fout==NULL)
 				printf("problem opening result file %s\n",file_name), exit(1);
-			sprintf(file_name,"%s/%s.partinit.%d.tree",dirfiles,simplename,myD+1);
+			sprintf(file_name,"%s%c%s.partinit.%d.tree",dirfiles,separator,simplename,myD+1);
 			f2=fopen(file_name,"w");
 			if (f2==NULL)
 				printf("problem opening result file %s\n",file_name), exit(1);
@@ -389,7 +398,7 @@ abgd_main(PyObject *self, PyObject *args) {
 			}
 		else if(notreefile)
 			{
-			sprintf(file_name,"%s/%s.partinit.%d.txt",dirfiles,simplename,myD+1);
+			sprintf(file_name,"%s%c%s.partinit.%d.txt",dirfiles,separator,simplename,myD+1);
 			fout=fopen(file_name,"w");
 
 			if (fout==NULL)
@@ -489,13 +498,13 @@ abgd_main(PyObject *self, PyObject *args) {
 
 		if (withallfiles){
 
-			sprintf(file_name,"%s/%s.part.%d.txt",dirfiles,simplename,myD+1);
+			sprintf(file_name,"%s%c%s.part.%d.txt",dirfiles,separator,simplename,myD+1);
 			fout=fopen(file_name,"w");
 
 			if (fout==NULL)
 				printf("problem opening result file %s\n",file_name), exit(1);
 
-			sprintf(file_name,"%s/%s.part.%d.tree",dirfiles,simplename,myD+1);
+			sprintf(file_name,"%s%c%s.part.%d.tree",dirfiles,separator,simplename,myD+1);
 			f2=fopen(file_name,"w");
 
 			if (fout==NULL)
@@ -513,7 +522,7 @@ abgd_main(PyObject *self, PyObject *args) {
 		}
 		else if(notreefile)
 		{
-		sprintf(file_name,"%s/%s.part.%d.txt",dirfiles,simplename,myD+1);
+		sprintf(file_name,"%s%c%s.part.%d.txt",dirfiles,separator,simplename,myD+1);
 		fout=fopen(file_name,"w");
 
 		if (fout==NULL)
@@ -541,25 +550,25 @@ abgd_main(PyObject *self, PyObject *args) {
 	else
 		{
 
-		sprintf(file_name,"%s/%s.abgd.svg",dirfiles,simplename);
+		sprintf(file_name,"%s%c%s.abgd.svg",dirfiles,separator,simplename);
 		if(verbose) fprintf(stderr,"writing graphx file\n");
 		CreateGraphFiles(mySpecies, specInit,myDist, myD, ledir, meth, file_name);   /* go for a nice piece of draw */
 		if(verbose) fprintf(stderr,"writing graphx file done\n");
 		printf("---------------------------------\n");
 		printf("Results file are :\n");
-		printf("Graphic svg file sumarizing this abgd run: %s/%s.abgd.svg\n",dirfiles,simplename);
-		printf("Graphic distance histogram svg file : %s/%s.disthist.svg\n",dirfiles,simplename);
-		printf("Graphic rank distance svg file : %s/%s.rank.svg\n",dirfiles,simplename);
+		printf("Graphic svg file sumarizing this abgd run: %s%c%s.abgd.svg\n",dirfiles,separator,simplename);
+		printf("Graphic distance histogram svg file : %s%c%s.disthist.svg\n",dirfiles,separator,simplename);
+		printf("Graphic rank distance svg file : %s%c%s.rank.svg\n",dirfiles,separator,simplename);
 
 		if (withallfiles)
 			{
 			printf("\n%d Text Files are resuming your work:\n",myD*4);
 			printf("Description of %d different init/recursives partitions in:\n",myD*2);
 			for (c=0;c<myD;c++)
-				printf("%s/%s.[partinit/part].%d.txt\n",dirfiles,simplename,c+1);
+				printf("%s%c%s.[partinit/part].%d.txt\n",dirfiles,separator,simplename,c+1);
 			printf("Description of %d newick trees in from init/recursives partition:\n",myD*2);
 			for (c=0;c<myD;c++)
-				printf("%s/%s.[partinit/part].%d.tree\n",dirfiles,simplename,c+1);
+				printf("%s%c%s.[partinit/part].%d.tree\n",dirfiles,separator,simplename,c+1);
 			}
 		else
 		if (notreefile)
@@ -567,7 +576,7 @@ abgd_main(PyObject *self, PyObject *args) {
 			printf("\n%d Text Files are resuming your work:\n",myD*2);
 			printf("Description of %d different init/recursives partitions in:\n",myD*2);
 			for (c=0;c<myD;c++)
-				printf("%s/%s.[partinit/part].%d.txt\n",dirfiles,simplename,c+1);
+				printf("%s%c%s.[partinit/part].%d.txt\n",dirfiles,separator,simplename,c+1);
 
 			}
 
@@ -595,62 +604,70 @@ abgd_main(PyObject *self, PyObject *args) {
 static PyObject *
 abgd_foo(PyObject *self, PyObject *args)
 {
-    long num, res;
+  long num, res;
 
-    if (!PyArg_ParseTuple(args, "l", &num))
-        return NULL;
-    res = num + 42;
-    return PyLong_FromLong(res);
+  if (!PyArg_ParseTuple(args, "l", &num))
+      return NULL;
+  res = num + 42;
+  return PyLong_FromLong(res);
 }
 
 static PyObject *
 abgd_foo2(PyObject *self, PyObject *args)
 {
-    const char *dir;
+  const char *dir;
 
-    if (!PyArg_ParseTuple(args, "s", &dir))
-        return NULL;
-		printf("foo dir = %s\n", dir);
+  if (!PyArg_ParseTuple(args, "s", &dir))
+      return NULL;
+	printf("foo dir = %s\n", dir);
 
-		char file_name[128];
-		sprintf(file_name,"%s/foo.bar", dir);
-		printf("foo file_name = %s\n", file_name);
+	char file_name[128];
+	sprintf(file_name,"%s/foo.bar", dir);
+	printf("foo file_name = %s\n", file_name);
 
-		FILE *file;
-		file=fopen(file_name,"w");
-		if (file != NULL)
-		{
-		fprintf(stderr,"Matrix dist is written as distmat.txt\n");
-		fprintf(file,"BARBARA\n");
-		fclose (file);
-		}
-    return PyLong_FromLong(1);
+	FILE *file;
+	file=fopen(file_name,"w");
+	if (file != NULL)
+	{
+	fprintf(stderr,"Matrix dist is written as distmat.txt\n");
+	fprintf(file,"BARBARA\n");
+	fclose (file);
+	}
+  return PyLong_FromLong(1);
 }
 
 static PyMethodDef AbgdMethods[] = {
-    {"main",  abgd_main, METH_VARARGS,
-     "Run ABGD for given parameters."},
-    {"foo",  abgd_foo, METH_VARARGS,
-     "Add 42."},
-    {"foo2",  abgd_foo2, METH_VARARGS,
-     "Write temp file."},
-    {NULL, NULL, 0, NULL}        /* Sentinel */
+  {"main",  abgd_main, METH_VARARGS,
+   "Run ABGD for given parameters."},
+  {"foo",  abgd_foo, METH_VARARGS,
+   "Add 42."},
+  {"foo2",  abgd_foo2, METH_VARARGS,
+   "Write temp file."},
+  {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 PyDoc_STRVAR(abgd_doc,
 "This is a template module just for instruction.");
 
 static struct PyModuleDef abgdmodule = {
-    PyModuleDef_HEAD_INIT,
-    "abgd",   /* name of module */
-    abgd_doc, /* module documentation, may be NULL */
-    -1,       /* size of per-interpreter state of the module,
-                 or -1 if the module keeps state in global variables. */
-    AbgdMethods
+  PyModuleDef_HEAD_INIT,
+  "abgd",   /* name of module */
+  abgd_doc, /* module documentation, may be NULL */
+  -1,       /* size of per-interpreter state of the module,
+               or -1 if the module keeps state in global variables. */
+  AbgdMethods
 };
 
 PyMODINIT_FUNC
 PyInit__abgdc(void)
 {
-    return PyModule_Create(&abgdmodule);
+	PyObject *m = NULL;
+  m = PyModule_Create(&abgdmodule);
+	if (m != NULL) {
+		if (PyModule_AddStringConstant(m, "separator", "/")) {
+			Py_XDECREF(m);
+			m = NULL;
+		}
+	}
+	return m;
 }

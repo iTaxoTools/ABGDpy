@@ -1,8 +1,8 @@
 from multiprocessing import Process
 
 import importlib.resources
-import tempfile as _tempfile
-import shutil as _shutil
+import tempfile
+import shutil
 
 from . import _abgdc
 from . import param
@@ -33,7 +33,7 @@ class BarcodeAnalysis():
         """
         if self.results is None:
             raise RuntimeError('No results to fetch.')
-        _shutil.copytree(self.results, destination)
+        shutil.copytree(self.results, destination)
 
     def run(self):
         """
@@ -64,7 +64,7 @@ def launch(analysis):
     """
     # When the last reference of TemporaryDirectory is gone,
     # the directory is automatically cleaned up, so keep it here.
-    analysis._temp = _tempfile.TemporaryDirectory(prefix='abgd_')
+    analysis._temp = tempfile.TemporaryDirectory(prefix='abgd_')
     analysis.target = analysis._temp.name
     p = Process(target=worker, args=(analysis,))
     p.start()
