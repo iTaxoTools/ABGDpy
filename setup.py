@@ -14,7 +14,7 @@ here = pathlib.Path(__file__).parent.resolve()
 # Get the long description from the README file
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 
-abgdmodule = Extension('abgd._abgdc',
+abgdmodule = Extension('abgd.abgdc',
                     include_dirs = ['src/abgd/c'],
                     sources = [
                         'src/abgd/c/abgdmodule.c',
@@ -185,7 +185,7 @@ setup(
     # data_files=[('my_data', ['data/data_file'])],  # Optional
 
     include_package_data=True,
-    
+
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # `pip` to create the appropriate form of executable for the target
@@ -193,11 +193,12 @@ setup(
     #
     # For example, the following would provide a command called `sample` which
     # executes the function `main` from this package when invoked:
-    # entry_points={  # Optional
-    #     'console_scripts': [
-    #         'sample=sample:main',
-    #     ],
-    # },
+    entry_points={  # Optional
+        'console_scripts': [
+            'abgd=abgd.run:main',
+            'abgd-qt=abgd.qt.run:main',
+        ],
+    },
 
     # List additional URLs that are relevant to your project as a dict.
     #

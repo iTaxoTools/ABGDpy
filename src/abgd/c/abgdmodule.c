@@ -659,7 +659,7 @@ static struct PyModuleDef abgdmodule = {
 };
 
 PyMODINIT_FUNC
-PyInit__abgdc(void)
+PyInit_abgdc(void)
 {
 	PyObject *m = NULL;
   m = PyModule_Create(&abgdmodule);
