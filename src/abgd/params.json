@@ -23,7 +23,8 @@
     }
   },
   "prior": {
-    "label": "Prior Intraspecific Divergence",
+    "label": "Divergence",
+    "doc": "Prior Intraspecific Divergence",
     "fields": {
       "min": {
         "label":    "Pmin",

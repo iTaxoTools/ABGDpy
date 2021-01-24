@@ -1,6 +1,8 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
   <qresource>
+    <file>icons/file-alt-regular.svg</file>
+    <file>icons/folder-open-regular.svg</file>
     <file>icons/folder-open-solid.svg</file>
     <file>icons/save-regular.svg</file>
     <file>icons/save-solid.svg</file>

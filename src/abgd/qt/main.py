@@ -17,6 +17,15 @@ from ..param import qt as param_qt
 from . import utility
 from . import icons
 
+
+def pixmapFromVector(path, size=32, color='#595b61'):
+    pixmap = QtGui.QPixmap(path)
+    mask = pixmap.createMaskFromColor(
+        QtGui.QColor('black'), QtCore.Qt.MaskOutColor)
+    pixmap.fill(QtGui.QColor(color))
+    pixmap.setMask(mask)
+    return pixmap.scaled(size,size,transformMode=QtCore.Qt.SmoothTransformation)
+
 class SquareImage(QtWidgets.QLabel):
     """Width will always equal height"""
     def __init__(self, *args, **kwargs):
@@ -190,11 +199,10 @@ class Pane(QtWidgets.QWidget):
         self.labelTitle = QtWidgets.QLabel('TITLE GO HERE')
         self.labelTitle.setIndent(4)
         self.labelTitle.setMargin(2)
-        self.labelTitle.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
+        # self.labelTitle.setSizePolicy(
+        #     QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Ignored)
         self.labelTitle.setStyleSheet("""
             QLabel {
-                indent: 32px;
                 font-size: 14px;
                 font-weight: bold;
                 color: #595b61;
@@ -287,8 +295,21 @@ class Main(QtWidgets.QDialog):
             'Python wrapper by S. Patmanidis'
         )
 
-        self.pane = {}
+        self.line = QtWidgets.QFrame()
+        self.line.icon = QtWidgets.QLabel()
+        self.line.icon.setPixmap(pixmapFromVector(':/icons/file-alt-regular.svg', 16))
+        self.line.file = QtWidgets.QLineEdit()
+        self.line.file.setPlaceholderText('Open a file to start')
+        self.line.file.setReadOnly(True)
+        self.line.file.setStyleSheet('padding: 2px 4px 2px 4px;')
 
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.line.icon)
+        layout.addSpacing(5)
+        layout.addWidget(self.line.file)
+        self.line.setLayout(layout)
+
+        self.pane = {}
 
         self.paramWidget = param_qt.ParamContainer(self.analysis.param, doc=False)
         # self.paramWidget.setStyleSheet("background: blue;")
@@ -297,7 +318,7 @@ class Main(QtWidgets.QDialog):
 
         self.pane['param'] = Pane(self)
         self.pane['param'].title = 'Parameters'
-        self.pane['param'].footer = 'Hover for tips'
+        self.pane['param'].footer = 'Hover parameters for tips'
         self.pane['param'].body.addWidget(self.paramWidget)
         self.pane['param'].body.addStretch(1)
 
@@ -324,6 +345,7 @@ class Main(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.header)
+        layout.addWidget(self.line)
         layout.addWidget(self.splitter)
 
         layout.setContentsMargins(0, 0, 0, 0)
@@ -335,36 +357,30 @@ class Main(QtWidgets.QDialog):
         """Populate dialog actions"""
         self.action = {}
 
-        def iconFromPixmap(path):
-            pixmap = QtGui.QPixmap(path)
-            mask = pixmap.createMaskFromColor(
-                QtGui.QColor('black'), QtCore.Qt.MaskOutColor)
-            pixmap.fill(QtGui.QColor('#595b61'))
-            pixmap.setMask(mask)
-            return QtGui.QIcon(pixmap.scaled(32,32,transformMode=QtCore.Qt.SmoothTransformation))
-
         self.action['open'] = QtWidgets.QAction('&Open', self)
-        self.action['open'].setIcon(iconFromPixmap(':/icons/folder-open-solid.svg'))
+        self.action['open'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg')))
         self.action['open'].setShortcut(QtGui.QKeySequence.Open)
-        self.action['open'].setStatusTip('Open an existing file')
-        self.action['open'].triggered.connect(lambda: print(42))
+        self.action['open'].setToolTip((
+            'Open an aligned fasta file or a distance matrix\n'
+            '(format from phylip dnadist or MEGA)'))
+        self.action['open'].triggered.connect(self.handleOpen)
 
         self.action['save'] = QtWidgets.QAction('&Save', self)
-        self.action['save'].setIcon(iconFromPixmap(':/icons/save-solid.svg'))
+        self.action['save'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/save-regular.svg')))
         self.action['save'].setShortcut(QtGui.QKeySequence.Save)
-        self.action['save'].setStatusTip('Save selected file')
+        self.action['save'].setToolTip('Save all files')
         self.action['save'].triggered.connect(lambda: print(24))
 
         self.action['run'] = QtWidgets.QAction('&Run', self)
-        self.action['run'].setIcon(iconFromPixmap(':/icons/play-circle-regular.svg'))
+        self.action['run'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/play-circle-regular.svg')))
         self.action['run'].setShortcut('Ctrl+R')
-        self.action['run'].setStatusTip('Run analysis')
+        self.action['run'].setToolTip('Run ABGD analysis')
         self.action['run'].triggered.connect(lambda: print(24))
 
         self.action['stop'] = QtWidgets.QAction('Stop', self)
-        self.action['stop'].setIcon(iconFromPixmap(':/icons/stop-circle-regular.svg'))
+        self.action['stop'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/stop-circle-regular.svg')))
         self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
-        self.action['stop'].setStatusTip('Cancel analysis')
+        self.action['stop'].setToolTip('Cancel analysis')
         self.action['stop'].triggered.connect(lambda: print(24))
 
         for action in self.action.values():
@@ -391,6 +407,41 @@ class Main(QtWidgets.QDialog):
 
         self.state['idle_none'].assignProperty(self.action['run'], 'enabled', False)
         self.state['idle_none'].assignProperty(self.action['save'], 'enabled', False)
+        self.state['idle_none'].assignProperty(self.paramWidget.container, 'enabled', False)
+        self.state['idle_none'].assignProperty(self.pane['param'].foot, 'enabled', False)
+
+        self.state['idle_open'].assignProperty(self.paramWidget.container, 'enabled', True)
+        self.state['idle_open'].assignProperty(self.pane['param'].foot, 'enabled', True)
+        self.state['idle_open'].assignProperty(self.action['run'], 'enabled', True)
+
+        self.transition = {}
+
+        self.transition['open'] = utility.NamedTransition('OPEN')
+        self.transition['open'].onTransition = self.transitionOpen
+        self.transition['open'].setTargetState(self.state['idle_open'])
+        self.state['idle'].addTransition(self.transition['open'])
+
+    def handleOpen(self):
+        """Called by toolbar action"""
+        (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
+            'ABGDpy - Open File',
+            QtCore.QDir.currentPath(),
+            'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)')
+        if len(fileName) == 0:
+            return
+        core.BarcodeAnalysis(fileName)
+        self.paramWidget.setParams(self.analysis.param)
+        self.machine.postEvent(utility.NamedEvent('OPEN',file=fileName))
+
+    def transitionOpen(self, event):
+        file = event.kwargs['file']
+        fileInfo = QtCore.QFileInfo(file)
+        fileName = fileInfo.fileName()
+        self.setWindowTitle("ABGDpy - " + fileName)
+        self.line.file.setText(file)
+        print(file)
+
+
 
 def show(sys):
     """Entry point"""
