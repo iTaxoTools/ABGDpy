@@ -195,8 +195,8 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
         'console_scripts': [
-            'abgd=abgd.run:main',
-            'abgd-qt=abgd.qt.run:main',
+            'abgdpy=abgd.run:main',
+            'abgdpy-qt=abgd.qt.run:main',
         ],
     },
 

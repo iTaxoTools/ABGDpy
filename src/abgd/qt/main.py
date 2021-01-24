@@ -88,7 +88,7 @@ class Header(QtWidgets.QFrame):
         self.toolbar = QtWidgets.QToolBar()
         self.toolbar.setIconSize(QtCore.QSize(38,38))
         self.toolbar.setSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.toolbar.setToolButtonStyle(
             QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
@@ -104,6 +104,7 @@ class Header(QtWidgets.QFrame):
         left.setColumnStretch(2,1)
         left.setContentsMargins(0, 0, 0, 0)
         left.setHorizontalSpacing(12)
+        left.setVerticalSpacing(0)
 
         right = QtWidgets.QHBoxLayout()
         right.addWidget(self.toolbar, 0)
@@ -213,6 +214,7 @@ class Main(QtWidgets.QDialog):
         self.machine = None
         self.draw()
         self.act()
+        self.cog()
 
         # self.stateInit()
 
@@ -282,7 +284,7 @@ class Main(QtWidgets.QDialog):
                 QtGui.QColor('black'), QtCore.Qt.MaskOutColor)
             pixmap.fill(QtGui.QColor('#595b61'))
             pixmap.setMask(mask)
-            return QtGui.QIcon(pixmap.scaled(38,38,transformMode=QtCore.Qt.SmoothTransformation))
+            return QtGui.QIcon(pixmap.scaled(32,32,transformMode=QtCore.Qt.SmoothTransformation))
 
         self.action['open'] = QtWidgets.QAction('&Open', self)
         self.action['open'].setIcon(iconFromPixmap(':/icons/folder-open-solid.svg'))
@@ -296,8 +298,42 @@ class Main(QtWidgets.QDialog):
         self.action['save'].setStatusTip('Save selected file')
         self.action['save'].triggered.connect(lambda: print(24))
 
+        self.action['run'] = QtWidgets.QAction('&Run', self)
+        self.action['run'].setIcon(iconFromPixmap(':/icons/play-circle-regular.svg'))
+        self.action['run'].setShortcut('Ctrl+R')
+        self.action['run'].setStatusTip('Run analysis')
+        self.action['run'].triggered.connect(lambda: print(24))
+
+        self.action['stop'] = QtWidgets.QAction('Stop', self)
+        self.action['stop'].setIcon(iconFromPixmap(':/icons/stop-circle-regular.svg'))
+        self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
+        self.action['stop'].setStatusTip('Cancel analysis')
+        self.action['stop'].triggered.connect(lambda: print(24))
+
         for action in self.action.values():
             self.header.toolbar.addAction(action)
+
+    def cog(self):
+        """Define state machine"""
+        self.state = {}
+        self.state['idle'] = QtCore.QState()
+        self.state['idle_none'] = QtCore.QState(self.state['idle'])
+        self.state['idle_open'] = QtCore.QState(self.state['idle'])
+        self.state['idle_done'] = QtCore.QState(self.state['idle'])
+        self.state['idle_last'] = QtCore.QHistoryState(self.state['idle'])
+        self.state['idle'].setInitialState(self.state['idle_none'])
+        self.state['running'] = QtCore.QState()
+
+        self.machine = QtCore.QStateMachine(self)
+        self.machine.addState(self.state['idle'])
+        self.machine.addState(self.state['running'])
+        self.machine.setInitialState(self.state['idle'])
+        self.machine.start()
+
+        self.state['idle'].assignProperty(self.action['stop'], 'visible', False)
+
+        self.state['idle_none'].assignProperty(self.action['run'], 'enabled', False)
+        self.state['idle_none'].assignProperty(self.action['save'], 'enabled', False)
 
 def show(sys):
     """Entry point"""

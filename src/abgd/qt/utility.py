@@ -8,6 +8,8 @@ import logging
 import sys, os, io
 import multiprocessing
 
+from . import utility
+
 ##############################################################################
 ### Logging
 
