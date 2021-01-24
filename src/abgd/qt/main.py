@@ -17,50 +17,105 @@ from ..param import qt as param_qt
 from . import utility
 from . import icons
 
+class SquareImage(QtWidgets.QLabel):
+    """Width will always equal height"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._size = None
 
-class Header(QtWidgets.QWidget):
+    def minimumSizeHint(self):
+        if self._size is not None:
+            return QtCore.QSize(self._size, self._size)
+        else:
+            return super().minimumSizeHint()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._size = max(event.size().height(), event.size().width())
+        self.updateGeometry()
+        print(self,event.size())
+
+
+class Header(QtWidgets.QFrame):
     """
-
+    The Taxotools toolbar, with space for a title, description,
+    citations and two logos.
     """
     def __init__(self):
-        """
-        """
+        """ """
         super().__init__()
 
         self._title = None
+        self._description = None
+        self._citation = None
         self._logoTool = None
         self._logoProject = None
 
-        self.logoSize = 86
+        self.logoSize = 64
 
         self.draw()
 
     def draw(self):
-        """
-        """
-        self.setStyleSheet('background: red;')
+        """ """
+        self.setContentsMargins(5,5,5,5)
+        self.setStyleSheet("""
+            Header {
+                background: transparent;
+                border-bottom: 2px solid palette(Dark);
+                }
+            """)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
 
-        self.labelLogoTool = QtWidgets.QLabel()
         self.labelTitle = QtWidgets.QLabel('TITLE')
-        font = self.labelTitle.font()
-        font.setBold(True)
-        font.setPointSize(22);
-        self.labelTitle.setFont(font)
-        self.labelDescription = QtWidgets.QLabel('DESCRIPTION')
-        self.labelCitation = QtWidgets.QLabel('CITATION')
-        self.labelLogoProject = QtWidgets.QLabel()
+        self.labelTitle.setStyleSheet(
+            "font-size: 28px; font-weight: bold; color: #595b61")
 
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(self.labelTitle, 0, 0)
-        grid.addWidget(self.labelDescription, 0, 1)
-        grid.addWidget(self.labelCitation, 1, 0, 1, 2)
-        grid.setContentsMargins(0, 0, 0, 0)
+        self.labelDescription = QtWidgets.QLabel('DESCRIPTION')
+        self.labelDescription.setStyleSheet(
+            "font-size: 11px; font-weight: bold; color: #595b61")
+
+        self.labelCitation = QtWidgets.QLabel('CITATION')
+        self.labelCitation.setStyleSheet(
+            "font-size: 11px;")
+
+        self.labelLogoTool = SquareImage()
+        self.labelLogoTool.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.labelLogoProject = SquareImage()
+        self.labelLogoProject.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.toolbar = QtWidgets.QToolBar()
+        self.toolbar.setIconSize(QtCore.QSize(38,38))
+        self.toolbar.setSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
+        self.toolbar.setToolButtonStyle(
+            QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+
+        self.toolbar.actionTriggered.connect(lambda x: print(x))
+
+        left = QtWidgets.QGridLayout()
+        left.addWidget(self.labelLogoTool, 0, 0, 2, 1)
+        left.addWidget(self.labelTitle, 0, 1)
+        left.addWidget(self.labelDescription, 0, 2)
+        left.addWidget(self.labelCitation, 1, 1, 1, 2)
+        left.setColumnStretch(0,0)
+        left.setColumnStretch(1,0)
+        left.setColumnStretch(2,1)
+        left.setContentsMargins(0, 0, 0, 0)
+        left.setHorizontalSpacing(12)
+
+        right = QtWidgets.QHBoxLayout()
+        right.addWidget(self.toolbar, 0)
+        right.addStretch(1)
+        right.addWidget(self.labelLogoProject, 0)
+        right.setContentsMargins(0, 0, 0, 0)
+        right.setSpacing(12)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(self.labelLogoTool)
-        layout.addLayout(grid)
-        layout.addWidget(self.labelLogoProject)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.addLayout(left, 5)
+        layout.addLayout(right, 3)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(layout)
 
@@ -72,6 +127,24 @@ class Header(QtWidgets.QWidget):
     def title(self, title):
         self.labelTitle.setText(title)
         self._title = title
+
+    @property
+    def description(self):
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        self.labelDescription.setText(description)
+        self._description = description
+
+    @property
+    def citation(self):
+        return self._citation
+
+    @citation.setter
+    def citation(self, citation):
+        self.labelCitation.setText(citation)
+        self._citation = citation
 
     @property
     def logoTool(self):
@@ -138,8 +211,9 @@ class Main(QtWidgets.QDialog):
         self.resize(854,480)
 
         self.machine = None
-        self.act()
         self.draw()
+        self.act()
+
         # self.stateInit()
 
         # if init is not None:
@@ -151,29 +225,20 @@ class Main(QtWidgets.QDialog):
     def __setstate__(self, state):
         (self.analysis,) = state
 
-    def act(self):
-        """Populate dialog actions"""
-        self.action = {}
-
-        self.action['open'] = QtWidgets.QAction('&Open', self)
-        self.action['open'].setShortcut('Ctrl+O')
-        self.action['open'].setStatusTip('Open an existing file')
-        self.action['open'].triggered.connect(lambda: print(42))
-
-        self.action['save'] = QtWidgets.QAction('&Save', self)
-        self.action['save'].setShortcut('Ctrl+S')
-        self.action['save'].setStatusTip('Save selected file')
-        self.action['save'].triggered.connect(lambda: print(24))
-
-        for key in self.action.keys():
-            self.addAction(self.action[key])
-
     def draw(self):
         """Draw all widgets"""
         self.header = Header()
         self.header.title = 'ABGDpy'
         self.header.logoTool = QtGui.QPixmap(':/icons/pyr8s-icon.png')
         self.header.logoProject = QtGui.QPixmap(':/icons/itaxotools-micrologo.png')
+        self.header.description = (
+            'Primary species delimitation' + '\n'
+            'using automatic barcode gap discovery'
+            )
+        self.header.citation = (
+            'ABGD by G Achaz, BIONJ by Olivier Gascuel' + '\n'
+            'Python wrapper by S. Patmanidis'
+        )
 
         self.pane = {}
 
@@ -190,22 +255,49 @@ class Main(QtWidgets.QDialog):
         self.splitter.addWidget(self.pane['param'])
         self.splitter.addWidget(self.pane['list'])
         self.splitter.addWidget(self.pane['preview'])
-        self.splitter.setStyleSheet("QSplitter::handle { height: 8px; }")
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.header)
-        layout.addWidget(self.splitter)
         self.splitter.setStretchFactor(0,1)
         self.splitter.setStretchFactor(1,1)
         self.splitter.setStretchFactor(2,1)
         self.splitter.setCollapsible(0,False)
         self.splitter.setCollapsible(1,False)
         self.splitter.setCollapsible(2,False)
+        self.splitter.setStyleSheet("QSplitter::handle { height: 8px; }")
 
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.header)
+        layout.addWidget(self.splitter)
+
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
         self.setContentsMargins(5,5,5,5)
+
+    def act(self):
+        """Populate dialog actions"""
+        self.action = {}
+
+        def iconFromPixmap(path):
+            pixmap = QtGui.QPixmap(path)
+            mask = pixmap.createMaskFromColor(
+                QtGui.QColor('black'), QtCore.Qt.MaskOutColor)
+            pixmap.fill(QtGui.QColor('#595b61'))
+            pixmap.setMask(mask)
+            return QtGui.QIcon(pixmap.scaled(38,38,transformMode=QtCore.Qt.SmoothTransformation))
+
+        self.action['open'] = QtWidgets.QAction('&Open', self)
+        self.action['open'].setIcon(iconFromPixmap(':/icons/folder-open-solid.svg'))
+        self.action['open'].setShortcut(QtGui.QKeySequence.Open)
+        self.action['open'].setStatusTip('Open an existing file')
+        self.action['open'].triggered.connect(lambda: print(42))
+
+        self.action['save'] = QtWidgets.QAction('&Save', self)
+        self.action['save'].setIcon(iconFromPixmap(':/icons/save-solid.svg'))
+        self.action['save'].setShortcut(QtGui.QKeySequence.Save)
+        self.action['save'].setStatusTip('Save selected file')
+        self.action['save'].triggered.connect(lambda: print(24))
+
+        for action in self.action.values():
+            self.header.toolbar.addAction(action)
 
 def show(sys):
     """Entry point"""
