@@ -172,19 +172,55 @@ class Pane(QtWidgets.QWidget):
     """
 
     """
-    def __init__(self):
+    def __init__(self, parent):
         """
         """
-        super().__init__()
+        super().__init__(parent=parent)
         self._title = None
+        self._foot = None
 
-        self.setStyleSheet('background: green;')
+        if not hasattr(parent, '_pane_foot_height'):
+            parent._pane_foot_height = None
+        self.draw()
+
+    def draw(self):
+        """ """
+        # self.setStyleSheet('background: green;')
 
         self.labelTitle = QtWidgets.QLabel('TITLE GO HERE')
+        self.labelTitle.setIndent(4)
+        self.labelTitle.setMargin(2)
+        self.labelTitle.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
+        self.labelTitle.setStyleSheet("""
+            QLabel {
+                indent: 32px;
+                font-size: 14px;
+                font-weight: bold;
+                color: #595b61;
+                background: transparent;
+                border-bottom: 1px solid palette(Dark);
+                }
+            """)
+
+        self.body = QtWidgets.QVBoxLayout()
+
+        self.labelFoot = QtWidgets.QLabel('FOOTER')
+        self.labelFoot.setAlignment(QtCore.Qt.AlignCenter)
+
+        layoutFlags = QtWidgets.QHBoxLayout()
+        layoutFlags.addWidget(self.labelFoot)
+        layoutFlags.setContentsMargins(0, 0, 0, 0)
+        self.foot = QtWidgets.QGroupBox()
+        self.foot.setLayout(layoutFlags)
+        self.foot.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.labelTitle)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.addWidget(self.labelTitle, 0)
+        layout.addLayout(self.body, 1)
+        layout.addWidget(self.foot, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(layout)
 
@@ -197,6 +233,15 @@ class Pane(QtWidgets.QWidget):
         self.labelTitle.setText(title)
         self._title = title
 
+    @property
+    def footer(self):
+        return self._foot
+
+    @title.setter
+    def footer(self, footer):
+        self.labelFoot.setText(footer)
+        self._foot = footer
+
 
 class Main(QtWidgets.QDialog):
     """Main window, handles everything"""
@@ -205,7 +250,7 @@ class Main(QtWidgets.QDialog):
         super(Main, self).__init__(parent)
 
         logging.getLogger().setLevel(logging.DEBUG)
-        self.analysis = None
+        self.analysis = core.BarcodeAnalysis(None)
 
         self.setWindowTitle("ABGDpy")
         self.setWindowIcon(QtGui.QIcon(':/icons/pyr8s-icon.png'))
@@ -244,14 +289,25 @@ class Main(QtWidgets.QDialog):
 
         self.pane = {}
 
-        self.pane['param'] = Pane()
-        self.pane['param'].title = 'param'
 
-        self.pane['list'] = Pane()
-        self.pane['list'].title = 'list'
+        self.paramWidget = param_qt.ParamContainer(self.analysis.param, doc=False)
+        # self.paramWidget.setStyleSheet("background: blue;")
+        self.paramWidget.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
 
-        self.pane['preview'] = Pane()
-        self.pane['preview'].title = 'preview'
+        self.pane['param'] = Pane(self)
+        self.pane['param'].title = 'Parameters'
+        self.pane['param'].footer = 'Hover for tips'
+        self.pane['param'].body.addWidget(self.paramWidget)
+        self.pane['param'].body.addStretch(1)
+
+        self.pane['list'] = Pane(self)
+        self.pane['list'].title = 'Files'
+        self.pane['list'].body.addStretch(1)
+
+        self.pane['preview'] = Pane(self)
+        self.pane['preview'].title = 'Preview'
+        self.pane['preview'].body.addStretch(1)
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter.addWidget(self.pane['param'])
@@ -263,7 +319,8 @@ class Main(QtWidgets.QDialog):
         self.splitter.setCollapsible(0,False)
         self.splitter.setCollapsible(1,False)
         self.splitter.setCollapsible(2,False)
-        self.splitter.setStyleSheet("QSplitter::handle { height: 8px; }")
+        self.splitter.setStyleSheet("QSplitter::handle { height: 12px; }")
+        self.splitter.setContentsMargins(4, 4, 4, 4)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.header)
