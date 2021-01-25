@@ -26,6 +26,7 @@ def pixmapFromVector(path, size=32, color='#595b61'):
     pixmap.setMask(mask)
     return pixmap.scaled(size,size,transformMode=QtCore.Qt.SmoothTransformation)
 
+
 class SquareImage(QtWidgets.QLabel):
     """Width will always equal height"""
     def __init__(self, *args, **kwargs):
@@ -43,6 +44,34 @@ class SquareImage(QtWidgets.QLabel):
         self._size = max(event.size().height(), event.size().width())
         self.updateGeometry()
         print(self,event.size())
+
+
+class FolderView(QtWidgets.QTreeView):
+    """Show contents of a folder"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setStyleSheet("QTreeView::item {padding: 2px;}")
+        self.setAnimated(False);
+        self.setIndentation(2);
+        self.setSortingEnabled(True);
+        self.header().hide()
+
+    def open(self, folder):
+        """Update contents"""
+        fileInfo = QtCore.QFileInfo(folder)
+        absolute = fileInfo.absolutePath()
+        model = QtWidgets.QFileSystemModel()
+        model.setRootPath(absolute)
+        model.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
+        self.setModel(model)
+        self.setRootIndex(model.index(absolute))
+        self.sortByColumn(0, QtCore.Qt.AscendingOrder);
+        for column in range(1, model.columnCount()):
+            self.hideColumn(column)
+
+    def clear(self):
+        """Clear contents"""
+        self.setModel(None)
 
 
 class Header(QtWidgets.QFrame):
@@ -296,6 +325,9 @@ class Main(QtWidgets.QDialog):
         )
 
         self.line = QtWidgets.QFrame()
+        self.line.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
+
         self.line.icon = QtWidgets.QLabel()
         self.line.icon.setPixmap(pixmapFromVector(':/icons/file-alt-regular.svg', 16))
         self.line.file = QtWidgets.QLineEdit()
@@ -304,9 +336,11 @@ class Main(QtWidgets.QDialog):
         self.line.file.setStyleSheet('padding: 2px 4px 2px 4px;')
 
         layout = QtWidgets.QHBoxLayout()
+        layout.addSpacing(4)
         layout.addWidget(self.line.icon)
-        layout.addSpacing(5)
+        layout.addSpacing(6)
         layout.addWidget(self.line.file)
+        layout.addSpacing(4)
         self.line.setLayout(layout)
 
         self.pane = {}
@@ -322,9 +356,14 @@ class Main(QtWidgets.QDialog):
         self.pane['param'].body.addWidget(self.paramWidget)
         self.pane['param'].body.addStretch(1)
 
+        self.folder = FolderView()
+
         self.pane['list'] = Pane(self)
         self.pane['list'].title = 'Files'
-        self.pane['list'].body.addStretch(1)
+        self.pane['list'].footer = 'Nothing to show'
+        self.pane['list'].body.addWidget(self.folder)
+        self.pane['list'].body.setContentsMargins(5, 5, 5, 5)
+        # self.pane['list'].body.addStretch(1)
 
         self.pane['preview'] = Pane(self)
         self.pane['preview'].title = 'Preview'
