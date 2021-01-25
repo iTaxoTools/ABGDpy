@@ -1,20 +1,23 @@
-# A sample Python project
+# ABGDpy
 
-![Python Logo](https://www.python.org/static/community_logos/python-logo.png "Sample inline image")
+A Python Wrapper for ABGD:
+<https://bioinfo.mnhn.fr/abi/public/abgd/>
 
-A sample project that exists as an aid to the [Python Packaging User
-Guide][packaging guide]'s [Tutorial on Packaging and Distributing
-Projects][distribution tutorial].
+(UNDER DEVELOPMENT)
 
-This project does not aim to cover best practices for Python project
-development as a whole. For example, it does not provide guidance or tool
-recommendations for version control, documentation, or testing.
+## Quick start
 
-[The source for this project is available here][src].
+Compile the C module:
 
-Most of the configuration for a Python project is done in the `setup.py` file,
-an example of which is included in this project. You should edit this file
-accordingly to adapt this sample project to your needs.
+```
+$ python setup.py build
+```
+
+Run the GUI:
+
+```
+$ python launcher.py
+```
 
 ----
 
