@@ -240,6 +240,7 @@ class UProcess(QtCore.QThread):
             If given, it is passed on to the function.
         """
         super().__init__()
+        self._quit = False
         self.logger = None
         self.pipeControl = multiprocessing.Pipe(duplex=True)
         self.pipeData = multiprocessing.Pipe(duplex=True)
@@ -332,9 +333,9 @@ class UProcess(QtCore.QThread):
 
         # Make sure process ended smoothly
         self.process.join()
-        if self.process.exitcode != 0:
+        if self.process.exitcode != 0 and not self._quit:
             self.handleErr('Internal error!')
-            exception = RuntimeError('Internal error, please check logs.')
+            exception = RuntimeError('Internal error, please check logs.' + str(self._quit))
             self.fail.emit(exception)
         return
 
@@ -359,6 +360,7 @@ class UProcess(QtCore.QThread):
 
     def quit(self):
         """Clean exit"""
+        self._quit = True
         self.process.terminate()
         super().quit()
 

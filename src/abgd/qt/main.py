@@ -9,6 +9,7 @@ import PyQt5.QtGui as QtGui
 import sys
 import logging
 import tempfile
+import time
 
 from .. import core
 from ..param import qt as param_qt
@@ -290,11 +291,12 @@ class Main(QtWidgets.QDialog):
         handler = logging.StreamHandler(sys.stdout)
         logging.getLogger().addHandler(handler)
 
+        self.title = 'ABGDpy'
         self.analysis = core.BarcodeAnalysis(None)
         self._temp = None
         self.temp = None
 
-        self.setWindowTitle("ABGDpy")
+        self.setWindowTitle(self.title)
         self.setWindowIcon(QtGui.QIcon(':/icons/pyr8s-icon.png'))
         self.resize(854,480)
 
@@ -317,7 +319,7 @@ class Main(QtWidgets.QDialog):
     def draw(self):
         """Draw all widgets"""
         self.header = Header()
-        self.header.title = 'ABGDpy'
+        self.header.title = self.title
         self.header.logoTool = QtGui.QPixmap(':/icons/pyr8s-icon.png')
         self.header.logoProject = QtGui.QPixmap(':/icons/itaxotools-micrologo.png')
         self.header.description = (
@@ -425,7 +427,7 @@ class Main(QtWidgets.QDialog):
         self.action['stop'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/stop-circle-regular.svg')))
         self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
         self.action['stop'].setToolTip('Cancel analysis')
-        self.action['stop'].triggered.connect(lambda: print(24))
+        self.action['stop'].triggered.connect(self.handleStop)
 
         for action in self.action.values():
             self.header.toolbar.addAction(action)
@@ -441,29 +443,95 @@ class Main(QtWidgets.QDialog):
         self.state['idle'].setInitialState(self.state['idle_none'])
         self.state['running'] = QtCore.QState()
 
+        state = self.state['idle']
+        state.assignProperty(self.action['run'], 'visible', True)
+        state.assignProperty(self.action['stop'], 'visible', False)
+        state.assignProperty(self.action['open'], 'enabled', True)
+        state.assignProperty(self.action['save'], 'enabled', True)
+
+        state = self.state['idle_none']
+        state.assignProperty(self.action['run'], 'enabled', False)
+        state.assignProperty(self.action['save'], 'enabled', False)
+        state.assignProperty(self.paramWidget.container, 'enabled', False)
+        state.assignProperty(self.pane['param'].foot, 'enabled', False)
+        state.assignProperty(self.pane['list'], 'enabled', False)
+        state.assignProperty(self.pane['list'].labelFoot, 'text', 'Nothing to show')
+
+        state = self.state['idle_open']
+        state.assignProperty(self.action['run'], 'enabled', True)
+        state.assignProperty(self.action['save'], 'enabled', False)
+        state.assignProperty(self.paramWidget.container, 'enabled', True)
+        state.assignProperty(self.pane['param'].foot, 'enabled', True)
+        state.assignProperty(self.pane['list'], 'enabled', False)
+        state.assignProperty(self.pane['list'].labelFoot, 'text', 'Nothing to show')
+
+
+        state = self.state['idle_done']
+        state.assignProperty(self.action['run'], 'enabled', True)
+        state.assignProperty(self.action['save'], 'enabled', True)
+        state.assignProperty(self.paramWidget.container, 'enabled', True)
+        state.assignProperty(self.pane['param'].foot, 'enabled', True)
+        state.assignProperty(self.pane['list'], 'enabled', True)
+        state.assignProperty(self.pane['list'].labelFoot, 'text', 'Click for preview')
+
+
+        state = self.state['running']
+        state.assignProperty(self.action['run'], 'visible', False)
+        state.assignProperty(self.action['stop'], 'visible', True)
+        state.assignProperty(self.action['open'], 'enabled', False)
+        state.assignProperty(self.action['save'], 'enabled', False)
+        state.assignProperty(self.paramWidget.container, 'enabled', False)
+        state.assignProperty(self.pane['param'].foot, 'enabled', False)
+        state.assignProperty(self.pane['list'], 'enabled', False)
+
+
+        transition = utility.NamedTransition('OPEN')
+        def onTransition(event):
+            file = event.kwargs['file']
+            fileInfo = QtCore.QFileInfo(file)
+            fileName = fileInfo.fileName()
+            absolute = fileInfo.absoluteFilePath()
+            self.setWindowTitle(self.title + ' - ' + fileName)
+            self.line.file.setText(file)
+            self.analysis.file = absolute
+            self.folder.clear()
+            print(file)
+        transition.onTransition = onTransition
+        transition.setTargetState(self.state['idle_open'])
+        self.state['idle'].addTransition(transition)
+
+        transition = utility.NamedTransition('RUN')
+        transition.setTargetState(self.state['running'])
+        self.state['idle'].addTransition(transition)
+
+        transition = utility.NamedTransition('DONE')
+        def onTransition(event):
+            self.folder.open(self.temp.name + '/')
+            msgBox = QtWidgets.QMessageBox(self)
+            msgBox.setWindowTitle(self.windowTitle())
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            msgBox.setText('Analysis complete.')
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            msgBox.setDefaultButton(QtWidgets.QMessageBox.Ok)
+            msgBox.exec()
+        transition.onTransition = onTransition
+        transition.setTargetState(self.state['idle_done'])
+        self.state['running'].addTransition(transition)
+
+        transition = utility.NamedTransition('FAIL')
+        # transition.onTransition = onTransition
+        transition.setTargetState(self.state['idle_done'])
+        self.state['running'].addTransition(transition)
+
+        transition = utility.NamedTransition('CANCEL')
+        transition.setTargetState(self.state['idle_last'])
+        self.state['running'].addTransition(transition)
+
         self.machine = QtCore.QStateMachine(self)
         self.machine.addState(self.state['idle'])
         self.machine.addState(self.state['running'])
         self.machine.setInitialState(self.state['idle'])
         self.machine.start()
-
-        self.state['idle'].assignProperty(self.action['stop'], 'visible', False)
-
-        self.state['idle_none'].assignProperty(self.action['run'], 'enabled', False)
-        self.state['idle_none'].assignProperty(self.action['save'], 'enabled', False)
-        self.state['idle_none'].assignProperty(self.paramWidget.container, 'enabled', False)
-        self.state['idle_none'].assignProperty(self.pane['param'].foot, 'enabled', False)
-
-        self.state['idle_open'].assignProperty(self.paramWidget.container, 'enabled', True)
-        self.state['idle_open'].assignProperty(self.pane['param'].foot, 'enabled', True)
-        self.state['idle_open'].assignProperty(self.action['run'], 'enabled', True)
-
-        self.transition = {}
-
-        self.transition['open'] = utility.NamedTransition('OPEN')
-        self.transition['open'].onTransition = self.transitionOpen
-        self.transition['open'].setTargetState(self.state['idle_open'])
-        self.state['idle'].addTransition(self.transition['open'])
 
     def fail(self, exception):
         # raise exception
@@ -482,7 +550,7 @@ class Main(QtWidgets.QDialog):
     def handleOpen(self):
         """Called by toolbar action: open"""
         (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
-            'ABGDpy - Open File',
+            self.title + ' - Open File',
             QtCore.QDir.currentPath(),
             'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)')
         if len(fileName) == 0:
@@ -507,7 +575,6 @@ class Main(QtWidgets.QDialog):
             self.temp = self._temp
             self.analysis.results = result
             self.machine.postEvent(utility.NamedEvent('DONE', True))
-            self.folder.open(self.temp.name + '/')
 
         def fail(exception):
             print('FAIL', exception)
@@ -526,18 +593,21 @@ class Main(QtWidgets.QDialog):
         print('WORK', self.analysis.file)
         print('WORK', self.analysis.target)
         self.analysis.run()
+        time.sleep(3)
         return self.analysis.results
 
-    def transitionOpen(self, event):
-        file = event.kwargs['file']
-        fileInfo = QtCore.QFileInfo(file)
-        fileName = fileInfo.fileName()
-        absolute = fileInfo.absoluteFilePath()
-        self.setWindowTitle("ABGDpy - " + fileName)
-        self.line.file.setText(file)
-        self.analysis.file = absolute
-        print(file)
-
+    def handleStop(self):
+        """Called by cancel button"""
+        msgBox = QtWidgets.QMessageBox(self)
+        msgBox.setWindowTitle(self.windowTitle())
+        msgBox.setIcon(QtWidgets.QMessageBox.Question)
+        msgBox.setText('Cancel ongoing analysis?')
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.No)
+        confirm = msgBox.exec()
+        if confirm == QtWidgets.QMessageBox.Yes:
+            self.launcher.quit()
+            self.machine.postEvent(utility.NamedEvent('CANCEL'))
 
 
 def show(sys):
