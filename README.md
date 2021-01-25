@@ -8,19 +8,22 @@ A Python Wrapper for ABGD:
 
 ## Quick start
 
-Install requirements:
-```
-$ pip install -r requirements.txt
-```
-
-Compile the C module:
+Install:
 
 ```
-$ python setup.py build
+$ pip install .
 ```
 
 Run the GUI:
 
 ```
-$ python launcher.py
+$ abgdpy-qt
 ```
+
+Command line tool:
+
+```
+$ abgdpy tests/test.fas
+```
+
+Launching without installing not yet supported
