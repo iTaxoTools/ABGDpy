@@ -305,10 +305,8 @@ class Main(QtWidgets.QDialog):
         self.act()
         self.cog()
 
-        # self.stateInit()
-
-        # if init is not None:
-        #     self.machine.started.connect(init)
+        if init is not None:
+            self.machine.started.connect(init)
 
     def __getstate__(self):
         return (self.analysis,)
@@ -472,7 +470,7 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.paramWidget.container, 'enabled', True)
         state.assignProperty(self.pane['param'].foot, 'enabled', True)
         state.assignProperty(self.pane['list'], 'enabled', True)
-        state.assignProperty(self.pane['list'].labelFoot, 'text', 'Click for preview')
+        state.assignProperty(self.pane['list'].labelFoot, 'text', 'Double-click for preview')
 
 
         state = self.state['running']
@@ -547,19 +545,21 @@ class Main(QtWidgets.QDialog):
         logger = logging.getLogger()
         logger.error(str(exception))
 
-    def handleOpen(self):
+    def handleOpen(self, event, fileName=None):
         """Called by toolbar action: open"""
-        (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
-            self.title + ' - Open File',
-            QtCore.QDir.currentPath(),
-            'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)')
+        print(event.__class__)
+        if fileName is None:
+            (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
+                self.title + ' - Open File',
+                QtCore.QDir.currentPath(),
+                'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)')
         if len(fileName) == 0:
             return
         core.BarcodeAnalysis(fileName)
         self.paramWidget.setParams(self.analysis.param)
         self.machine.postEvent(utility.NamedEvent('OPEN',file=fileName))
 
-    def handleRun(self):
+    def handleRun(self, event):
         """Called by toolbar action: run"""
         try:
             self.paramWidget.applyParams()
@@ -614,7 +614,7 @@ def show(sys):
     """Entry point"""
     def init():
         if len(sys.argv) >= 2:
-            main.handleOpenFile(sys.argv[1])
+            main.handleOpen(None, fileName=sys.argv[1])
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle('Fusion')

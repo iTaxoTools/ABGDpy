@@ -4,7 +4,7 @@
     "fields": {
       "mega": {
         "label":    "MEGA CVS",
-        "doc":      "If True, the distance Matrix is supposed to be MEGA CVS (other formats are guessed).",
+        "doc":      "If True, the distance Matrix is supposed to be MEGA CVS\n(other formats are guessed).",
         "type":     "bool",
         "default":  false
       },
