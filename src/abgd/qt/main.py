@@ -363,6 +363,7 @@ class Main(QtWidgets.QDialog):
         self.pane['param'].body.addStretch(1)
 
         self.folder = FolderView()
+        self.folder.doubleClicked.connect(self.handlePreview)
 
         self.pane['list'] = Pane(self)
         self.pane['list'].title = 'Files'
@@ -371,9 +372,19 @@ class Main(QtWidgets.QDialog):
         self.pane['list'].body.setContentsMargins(5, 5, 5, 5)
         # self.pane['list'].body.addStretch(1)
 
+        self.preview = QtWidgets.QPlainTextEdit()
+        self.preview.setFont(
+            QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
+        self.preview.setReadOnly(True)
+
+        self.stack = QtWidgets.QStackedLayout()
+        self.stack.addWidget(self.preview)
+
         self.pane['preview'] = Pane(self)
         self.pane['preview'].title = 'Preview'
-        self.pane['preview'].body.addStretch(1)
+        self.pane['preview'].footer = 'Nothing to show'
+        self.pane['preview'].body.addLayout(self.stack)
+        self.pane['preview'].body.setContentsMargins(5, 5, 5, 5)
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter.addWidget(self.pane['param'])
@@ -455,6 +466,7 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.pane['param'].foot, 'enabled', False)
         state.assignProperty(self.pane['list'], 'enabled', False)
         state.assignProperty(self.pane['list'].labelFoot, 'text', 'Nothing to show')
+        state.assignProperty(self.pane['preview'], 'enabled', False)
 
         state = self.state['idle_open']
         state.assignProperty(self.action['run'], 'enabled', True)
@@ -463,7 +475,7 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.pane['param'].foot, 'enabled', True)
         state.assignProperty(self.pane['list'], 'enabled', False)
         state.assignProperty(self.pane['list'].labelFoot, 'text', 'Nothing to show')
-
+        state.assignProperty(self.pane['preview'], 'enabled', False)
 
         state = self.state['idle_done']
         state.assignProperty(self.action['run'], 'enabled', True)
@@ -472,7 +484,7 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.pane['param'].foot, 'enabled', True)
         state.assignProperty(self.pane['list'], 'enabled', True)
         state.assignProperty(self.pane['list'].labelFoot, 'text', 'Double-click for preview')
-
+        state.assignProperty(self.pane['preview'], 'enabled', True)
 
         state = self.state['running']
         state.assignProperty(self.action['run'], 'visible', False)
@@ -482,7 +494,7 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.paramWidget.container, 'enabled', False)
         state.assignProperty(self.pane['param'].foot, 'enabled', False)
         state.assignProperty(self.pane['list'], 'enabled', False)
-
+        state.assignProperty(self.pane['preview'], 'enabled', False)
 
         transition = utility.NamedTransition('OPEN')
         def onTransition(event):
@@ -546,7 +558,7 @@ class Main(QtWidgets.QDialog):
         logger = logging.getLogger()
         logger.error(str(exception))
 
-    def handleOpen(self, event, fileName=None):
+    def handleOpen(self, e, fileName=None):
         """Called by toolbar action: open"""
         if fileName is None:
             (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
@@ -560,7 +572,7 @@ class Main(QtWidgets.QDialog):
         self.paramWidget.setParams(self.analysis.param)
         self.machine.postEvent(utility.NamedEvent('OPEN',file=fileName))
 
-    def handleSave(self, event):
+    def handleSave(self):
         """Called by toolbar action: save"""
         fileOriginal = QtCore.QFileInfo(self.analysis.file)
         dirOriginal = fileOriginal.absoluteDir()
@@ -620,7 +632,7 @@ class Main(QtWidgets.QDialog):
             print(src, '->', dst)
             shutil.copyfile(src, dst)
 
-    def handleRun(self, event):
+    def handleRun(self):
         """Called by toolbar action: run"""
         try:
             self.paramWidget.applyParams()
@@ -670,6 +682,26 @@ class Main(QtWidgets.QDialog):
             self.launcher.quit()
             self.machine.postEvent(utility.NamedEvent('CANCEL'))
 
+    def handlePreview(self, event):
+        """Called by file double-click"""
+        try:
+            index = self.folder.selectedIndexes()
+            if len(index) <= 0:
+                return
+            data = self.folder.model().data(index[0])
+            self.pane['preview'].footer = data
+            file = QtCore.QDir.cleanPath(self.temp.name + QtCore.QDir.separator() + data)
+            self.preview.clear()
+            with open(file) as input:
+                while True:
+                    line = input.readline()
+                    self.preview.appendPlainText(line)
+                    if not line:
+                        break
+            self.preview.moveCursor(QtGui.QTextCursor.Start)
+        except Exception as exception:
+            self.fail(exception)
+            return
 
 def show(sys):
     """Entry point"""
