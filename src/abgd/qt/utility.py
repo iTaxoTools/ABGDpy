@@ -329,7 +329,13 @@ class UProcess(QtCore.QThread):
                     waitList.pop(pipe)
                 else:
                     waitList[pipe](data)
-        # Nothing left to do
+
+        # Make sure process ended smoothly
+        self.process.join()
+        if self.process.exitcode != 0:
+            self.handleErr('Internal error!')
+            exception = RuntimeError('Internal error, please check logs.')
+            self.fail.emit(exception)
         return
 
     def handleControl(self, data):

@@ -8,8 +8,7 @@ import PyQt5.QtGui as QtGui
 
 import sys
 import logging
-import re
-import pickle
+import tempfile
 
 from .. import core
 from ..param import qt as param_qt
@@ -17,6 +16,8 @@ from ..param import qt as param_qt
 from . import utility
 from . import icons
 
+import os
+core.abgdc.separator = os.path.sep
 
 def pixmapFromVector(path, size=32, color='#595b61'):
     pixmap = QtGui.QPixmap(path)
@@ -43,7 +44,6 @@ class SquareImage(QtWidgets.QLabel):
         super().resizeEvent(event)
         self._size = max(event.size().height(), event.size().width())
         self.updateGeometry()
-        print(self,event.size())
 
 
 class FolderView(QtWidgets.QTreeView):
@@ -287,7 +287,12 @@ class Main(QtWidgets.QDialog):
         super(Main, self).__init__(parent)
 
         logging.getLogger().setLevel(logging.DEBUG)
+        handler = logging.StreamHandler(sys.stdout)
+        logging.getLogger().addHandler(handler)
+
         self.analysis = core.BarcodeAnalysis(None)
+        self._temp = None
+        self.temp = None
 
         self.setWindowTitle("ABGDpy")
         self.setWindowIcon(QtGui.QIcon(':/icons/pyr8s-icon.png'))
@@ -414,7 +419,7 @@ class Main(QtWidgets.QDialog):
         self.action['run'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/play-circle-regular.svg')))
         self.action['run'].setShortcut('Ctrl+R')
         self.action['run'].setToolTip('Run ABGD analysis')
-        self.action['run'].triggered.connect(lambda: print(24))
+        self.action['run'].triggered.connect(self.handleRun)
 
         self.action['stop'] = QtWidgets.QAction('Stop', self)
         self.action['stop'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/stop-circle-regular.svg')))
@@ -460,8 +465,22 @@ class Main(QtWidgets.QDialog):
         self.transition['open'].setTargetState(self.state['idle_open'])
         self.state['idle'].addTransition(self.transition['open'])
 
+    def fail(self, exception):
+        # raise exception
+        # self.closeMessages()
+        msgBox = QtWidgets.QMessageBox(self)
+        msgBox.setWindowTitle(self.windowTitle())
+        msgBox.setIcon(QtWidgets.QMessageBox.Critical)
+        msgBox.setText('An exception occured:')
+        msgBox.setInformativeText(str(exception))
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Ok)
+        msgBox.exec()
+        logger = logging.getLogger()
+        logger.error(str(exception))
+
     def handleOpen(self):
-        """Called by toolbar action"""
+        """Called by toolbar action: open"""
         (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
             'ABGDpy - Open File',
             QtCore.QDir.currentPath(),
@@ -472,12 +491,51 @@ class Main(QtWidgets.QDialog):
         self.paramWidget.setParams(self.analysis.param)
         self.machine.postEvent(utility.NamedEvent('OPEN',file=fileName))
 
+    def handleRun(self):
+        """Called by toolbar action: run"""
+        try:
+            self.paramWidget.applyParams()
+            self._temp = tempfile.TemporaryDirectory(prefix='abgd_')
+            self.analysis.target = self._temp.name
+            print('RUN', self.analysis.target)
+        except Exception as exception:
+            self.fail(exception)
+            return
+
+        def done(result):
+            print('DONE', result)
+            self.temp = self._temp
+            self.analysis.results = result
+            self.machine.postEvent(utility.NamedEvent('DONE', True))
+            self.folder.open(self.temp.name + '/')
+
+        def fail(exception):
+            print('FAIL', exception)
+            self.fail(exception)
+            self.machine.postEvent(utility.NamedEvent('FAIL', exception))
+
+        self.launcher = utility.UProcess(self.workRun)
+        self.launcher.done.connect(done)
+        self.launcher.fail.connect(fail)
+        self.launcher.setLogger(logging.getLogger())
+        self.launcher.start()
+        self.machine.postEvent(utility.NamedEvent('RUN'))
+
+    def workRun(self):
+        """Runs on the UProcess, defined here for pickability"""
+        print('WORK', self.analysis.file)
+        print('WORK', self.analysis.target)
+        self.analysis.run()
+        return self.analysis.results
+
     def transitionOpen(self, event):
         file = event.kwargs['file']
         fileInfo = QtCore.QFileInfo(file)
         fileName = fileInfo.fileName()
+        absolute = fileInfo.absoluteFilePath()
         self.setWindowTitle("ABGDpy - " + fileName)
         self.line.file.setText(file)
+        self.analysis.file = absolute
         print(file)
 
 

@@ -4,7 +4,7 @@ import importlib.resources
 import tempfile
 import shutil
 
-from . import _abgdc
+from . import abgdc
 from . import param
 
 class BarcodeAnalysis():
@@ -45,7 +45,7 @@ class BarcodeAnalysis():
         if self.target is not None:
             kwargs['out'] = self.target
         print(kwargs)
-        _abgdc.main(kwargs)
+        abgdc.main(kwargs)
         self.results = self.target
 
 
