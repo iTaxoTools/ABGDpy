@@ -10,6 +10,7 @@ import sys
 import logging
 import tempfile
 import time
+import shutil
 
 from .. import core
 from ..param import qt as param_qt
@@ -413,7 +414,7 @@ class Main(QtWidgets.QDialog):
         self.action['save'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/save-regular.svg')))
         self.action['save'].setShortcut(QtGui.QKeySequence.Save)
         self.action['save'].setToolTip('Save all files')
-        self.action['save'].triggered.connect(lambda: print(24))
+        self.action['save'].triggered.connect(self.handleSave)
 
         self.action['run'] = QtWidgets.QAction('&Run', self)
         self.action['run'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/play-circle-regular.svg')))
@@ -547,17 +548,77 @@ class Main(QtWidgets.QDialog):
 
     def handleOpen(self, event, fileName=None):
         """Called by toolbar action: open"""
-        print(event.__class__)
         if fileName is None:
             (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
                 self.title + ' - Open File',
                 QtCore.QDir.currentPath(),
-                'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)')
+                'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)',
+                options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if len(fileName) == 0:
             return
         core.BarcodeAnalysis(fileName)
         self.paramWidget.setParams(self.analysis.param)
         self.machine.postEvent(utility.NamedEvent('OPEN',file=fileName))
+
+    def handleSave(self, event):
+        """Called by toolbar action: save"""
+        fileOriginal = QtCore.QFileInfo(self.analysis.file)
+        dirOriginal = fileOriginal.absoluteDir()
+
+        dialog = QtWidgets.QFileDialog()
+        dialog.setDirectory(dirOriginal)
+        dialog.setFileMode(QtWidgets.QFileDialog.Directory)
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dialog.setOptions(
+            QtWidgets.QFileDialog.DontResolveSymlinks |
+            QtWidgets.QFileDialog.DontUseNativeDialog
+            )
+
+        class ProxyModel(QtCore.QIdentityProxyModel):
+            def flags(self, index):
+                flags = super().flags(index)
+                if not self.sourceModel().isDir(index):
+                    flags &= ~QtCore.Qt.ItemIsSelectable
+                    flags &= ~QtCore.Qt.ItemIsEnabled
+                return flags
+
+        proxy = ProxyModel(dialog)
+        dialog.setProxyModel(proxy)
+
+        pathNew = ''
+        if (dialog.exec()):
+            pathNew = dialog.selectedFiles()[0]
+            print(pathNew)
+        if len(pathNew) == 0:
+            return
+
+        dirNew = QtCore.QDir(pathNew)
+        dirNew.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
+        filesNew = set(dirNew.entryList())
+
+        pathOld = self.temp.name
+
+        dirOld = QtCore.QDir(pathOld)
+        dirOld.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
+        filesOld = set(dirOld.entryList())
+
+        filesOver = filesOld & filesNew
+        if len(filesOver) > 0:
+            msgBox = QtWidgets.QMessageBox(self)
+            msgBox.setWindowTitle(self.windowTitle())
+            msgBox.setIcon(QtWidgets.QMessageBox.Question)
+            msgBox.setText('Some files already exist. Overwrite?')
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            msgBox.setDefaultButton(QtWidgets.QMessageBox.Yes)
+            confirm = msgBox.exec()
+            if confirm == QtWidgets.QMessageBox.No:
+                return
+
+        for file in dirOld:
+            src = QtCore.QDir.cleanPath(pathOld + QtCore.QDir.separator() + file)
+            dst = QtCore.QDir.cleanPath(pathNew + QtCore.QDir.separator() + file)
+            print(src, '->', dst)
+            shutil.copyfile(src, dst)
 
     def handleRun(self, event):
         """Called by toolbar action: run"""
@@ -593,7 +654,7 @@ class Main(QtWidgets.QDialog):
         print('WORK', self.analysis.file)
         print('WORK', self.analysis.target)
         self.analysis.run()
-        time.sleep(3)
+        # time.sleep(3)
         return self.analysis.results
 
     def handleStop(self):
