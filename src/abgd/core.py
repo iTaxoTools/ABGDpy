@@ -54,7 +54,7 @@ def worker(analysis):
     Called by launch() on a new process
     """
     analysis.run()
-    print('Analysis complete:', analysis.results)
+    # print('Analysis complete:', analysis.results)
 
 def launch(analysis):
     """
