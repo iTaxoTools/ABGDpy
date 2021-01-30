@@ -38,11 +38,8 @@
 #include <time.h>
 #include <float.h>
 #include <math.h>
-#include <unistd.h>
-#include <strings.h>
 #include <string.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>  /* errno */
 #include "abgd.h"

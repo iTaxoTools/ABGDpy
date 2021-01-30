@@ -492,7 +492,8 @@ if (stat(dirfiles, &stfile) == -1)
 
 				reset_composante( &recursive_comp );                     /* needed for the free in case of no new group */
 
-				bzero( (void *)mask, (size_t)distmat.n*sizeof(char) );   /* built mask used to only consider some cells of the matrix */
+				// bzero( (void *)mask, (size_t)distmat.n*sizeof(char) );   /* built mask used to only consider some cells of the matrix */
+				memset((void *)mask, 0, (size_t)distmat.n*sizeof(char));	/* Replaces the above */
 				for(b=0;b<comp.n_in_comp[a]; b++)
 					mask[ comp.comp[a][b] ] = 1;
 
