@@ -8,8 +8,8 @@ $ python pyinstaller launcher.specs
 
 import sys
 import multiprocessing
-import abgd.qt
+import src.abgd.qt
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
-    abgd.qt.main.show(sys)
+    src.abgd.qt.main.show(sys)

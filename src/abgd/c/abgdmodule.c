@@ -11,6 +11,7 @@ https://www.python.org/dev/peps/pep-0489/
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "abgd.h"
 #include "main_abgd.h"
 
@@ -229,6 +230,10 @@ abgd_main(PyObject *self, PyObject *args) {
 	printf("> notreefile = %i\n", notreefile);
 
 	if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
+
+	sprintf(file_name,"%s%c%s.log.txt",dirfiles,separator,simplename);
+	freopen (file_name,"w",stdout);
+	printf("### logfile = %s\n", file_name);
 
 	mySpecies=malloc(sizeof(int)*nbStepsABGD+1);
 	specInit=malloc(sizeof(int)*nbStepsABGD+1);
