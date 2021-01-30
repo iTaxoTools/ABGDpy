@@ -151,7 +151,9 @@ abgd_main(PyObject *self, PyObject *args) {
 	int nbreal;
 	struct tm      *tm;
 	int ncomp_primary=0;
-	char buffer2[80];
+	// char buffer2[80];
+	const char *timeSig = NULL;
+	const char *timeSig_default = "?";
 	int withspart=1;
 	Spart *myspar,*myspar2;
 	int **nb_subsets;
@@ -159,18 +161,17 @@ abgd_main(PyObject *self, PyObject *args) {
 	struct stat     statbuf;
 	FILE *fres=stdout;
 	char dataFilename[256];
-	char buffer[80];
+	// char buffer[80];
    	struct stat stfile = {0};
 char *bout;
 
 
+	// Fetch time from arguments instead
 	// stat(argv[0], &statbuf);
   //   tm = localtime(&statbuf.st_mtime);
 	//
  	// strftime(buffer,80,"%x - %I:%M%p", tm); // 11/19/20 - 05:34PM
 	// strftime(buffer2,80,"%FT%T", tm); // 11/19/20 - 05:34PM
-	strcpy(buffer, "11/19/20 - 05:34PM");
-	strcpy(buffer2, "11/19/20 - 05:34PM");
 
 	// *dirfiles='.';
 	// *(dirfiles+1)='\0';
@@ -214,6 +215,10 @@ char *bout;
 	if (parseItem(dict, "out", 's', &dirfiles)) return NULL;
 	if (!dirfiles) dirfiles = dirfiles_default;
 	printf("> dirfiles = %s\n", dirfiles);
+
+	if (parseItem(dict, "time", 's', &timeSig)) return NULL;
+	if (!timeSig) timeSig = timeSig_default;
+	printf("> timeSig = %s\n", timeSig);
 
 	if (parseItem(dict, "method", 'i', &imethode)) return NULL;
 	printf("> imethode = %i\n", imethode);
@@ -648,7 +653,7 @@ if (stat(dirfiles, &stfile) == -1)
 			{
 			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
 			printf("Spart files (%d real steps)\n",nbreal);
-			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,buffer2,fres,separator,meth,minSlopeIncrease,bcod);
+			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,timeSig,fres,separator,meth,minSlopeIncrease,bcod);
 			}
 
 		printf("---------------------------------\n");
