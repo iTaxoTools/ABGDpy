@@ -37,8 +37,12 @@
 #include <time.h>
 #include <float.h>
 #include <math.h>
+#include <unistd.h>
+#include <strings.h>
 #include <string.h>
 #include <ctype.h>
+#include <dirent.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>  /* errno */
 #include "abgd.h"
@@ -95,7 +99,7 @@ int ReadFastaSequence( FILE *f, struct FastaSeq *laseq)
     		{ungetc(c,f);break;} //put back in the stream the next new seq indicator
 		if( c!='\n' && c!='\r' && c!='\t' && c!=' ')
 		  {
-		  if (strchr(nucs,toupper(c))==NULL) html_error(60); /*weird symbol found*/
+		  if (strchr(nucs,toupper(c))==NULL) {printf( "Your data contains at least one other symbol than ATGC-+NMRWSYKVHDBNZ<BR>Please correct it\n"); exit(1);}/*weird symbol found*/
 
 		  seq[n++]=toupper(c);
 		  if (nalloc == n)
@@ -160,7 +164,7 @@ if (check_names(mesSeq,nseq)==0)
 	printf("Two seqs found with same name. Exit\n"),exit(1);
 
 //printf("Going for dist: %d seqs\n",nseq);
-my_mat=GetDistMat(nseq,mesSeq, method,ts_tv);
+my_mat=GetDistMat(nseq,mesSeq, method,ts_tv,stdout,"");
 
 
 for (i=0;i<nseq;i++)
@@ -192,10 +196,10 @@ int nbc=0;
 	while (1)
 		{
 		 c=fgetc(f_in);
-		 if (feof(f_in))
-		 	printf("EOF (1) detected wrong format\n"),exit(1);
+		// if (feof(f_in))
+		 //	printf("EOF (1) detected wrong format\n"),exit(1);
 
-		 if (c=='\n'|| c==10 || c=='\r'){
+		 if (c=='\n'|| c==10 || c=='\r' || feof(f_in)){
  			ligne[nbc]='\0';
 
  			break;
@@ -248,14 +252,16 @@ long ppos;
 	while (1)
 		{
 		ligne=my_get_line(ligne,f_in,&nbcharmax);
-		if(strncmp(ligne,"Table,",5)==0 || feof(f_in)) break;
+
 		if (strlen(ligne)>2)
 			{nb++;}
+
+		if(strncmp(ligne,"Table,",5)==0 || feof(f_in)) break;
 		}
 
 	rewind(f_in);
 	my_mat->n = nb;
-		printf("%ld data<BR>\n",my_mat->n);fflush(stdout);
+		printf("%ld seq\n",my_mat->n);fflush(stdout);
 
 
 	my_mat->names = (char **)malloc( (size_t) sizeof(char *)*my_mat->n );
@@ -292,8 +298,8 @@ for (a=0;a<my_mat->n;a++){
 			}
 
 		my_mat->names[a][c]='\0';
-//printf("*****%s\n<BR>",my_mat->names[a]);fflush(stdout);
-		for (b=0;b<=a;b++)
+
+		for (b=0;b<a;b++)
 			{
 			c=0;
 			while( (letter=fgetc(f_in)) != ','){
@@ -305,24 +311,26 @@ for (a=0;a<my_mat->n;a++){
 				c++;
 			}
 	    	nombre[c]='\0';
-
+	    	//if (a==2340) printf("%s %d %d %s\n",my_mat->names[a],a,b,nombre);
 	    	if (c==0)
 	    		my_mat->dist[b][a]=my_mat->dist[a][b]=0;
 	    	else
 			my_mat->dist[b][a]=my_mat->dist[a][b]=strtod(nombre,NULL);
 
 			}
+		 my_mat->dist[a][a]=0;
 
 	while (letter != 10  && letter!=13 && letter !='\n'&& !feof(f_in))/* go to end of line*/
 		{letter=fgetc(f_in);}
-	if (feof(f_in))
-		printf("pb reading matrix CVS\n"),exit(1);
+	if (feof(f_in) && b!=a)
+		printf("%d %d pb reading matrix CVS\n",a,b),exit(1);
 
 	}
+//for (a=0;a<my_mat->n;a++)
 
-
+//printf("ok\n");
 free(ligne);
-
+//printf("all done\nRETURN");
 }
 
 
@@ -349,38 +357,37 @@ void readMatrixMega(FILE *f_in,struct DistanceMatrix *my_mat)
 	printf("Read Mega Format\n");
 
 	//read the header
-	while (1)
-		 {
-			fscanf(f_in,"%[^\n]\n",ligne);
+	while (1) {
+		fscanf(f_in,"%[^\n]\n",ligne);
 
-			char *s = ligne;
-			while (*s) {
-				*s = toupper((unsigned char) *s);
-				s++;
-			}
+		char *s = ligne;
+		while (*s) {
+			*s = toupper((unsigned char) *s);
+			s++;
+		}
 
-			if (feof(f_in)) printf("pb reading file...\n"),exit(1);
+		if (feof(f_in)) printf("pb reading file...\n"),exit(1);
 
-		 	if (strstr(ligne," OF TAXA :") !=NULL)
-				my_mat->n=atoi(strchr(ligne,':')+1);
+	 	if (strstr(ligne," OF TAXA :") !=NULL)
+			my_mat->n=atoi(strchr(ligne,':')+1);
 
-			if (strstr(ligne,"NTAXA=") !=NULL)
-				my_mat->n=atoi(strchr(strstr(ligne,"NTAXA="),'=')+1);
+		if (strstr(ligne,"NTAXA=") !=NULL)
+			my_mat->n=atoi(strchr(strstr(ligne,"NTAXA="),'=')+1);
 
-			if (strstr(ligne,"DATAFORMAT=")!=NULL)
-				{
-				if (strstr(ligne,"LOWERLEFT")!=NULL)
-					lower=1;
+		if (strstr(ligne,"DATAFORMAT=")!=NULL)
+			{
+			if (strstr(ligne,"LOWERLEFT")!=NULL)
+				lower=1;
+			else
+				if (strstr(ligne,"UPPERRIGHT")!=NULL)
+					lower=0;
 				else
-					if (strstr(ligne,"UPPERRIGHT")!=NULL)
-						lower=0;
-					else
-					printf("Unknown data format\n"),exit(1);
-				}
-			if (*ligne!='!' && strchr(ligne,';'))// we have reach the species desc line
-				break;
-
+				printf("Unknown data format\n"),exit(1);
 			}
+		if (*ligne!='!' && strchr(ligne,';'))// we have reach the species desc line
+			break;
+
+	}
 
 
 	printf("%ld data\n",my_mat->n);
@@ -531,7 +538,7 @@ struct DistanceMatrix read_distmat(FILE *f_in,float ts_tv,int fmeg){
 
 	rewind (f_in);
 	if (fmeg==1)
-		readMatrixMegaCVS(f_in,&my_mat);
+		{readMatrixMegaCVS(f_in,&my_mat); }
 	else
 		if(a==1)
  	    	readMatrixMega(f_in,&my_mat);
@@ -613,7 +620,7 @@ struct DistanceMatrix read_distmat(FILE *f_in,float ts_tv,int fmeg){
 
 
 			}
-//		printf("%ld data read\n",my_mat.n);
+		//printf("----->%ld data read\n",my_mat.n);
 			return my_mat;
 
 }
@@ -679,7 +686,7 @@ char chaine [12];
 	svgout=fopen(filename,"w");
 	CreateHeadersvg(svgout,largeur+sizelegend, hauteur+sizelegend);
 
-	histo=malloc(sizeof(int)*nbbids+1);
+	histo=malloc(sizeof(int)*nbbids+2);
 	if (histo==NULL)
 	fprintf(stderr,"pb malloc histo(1)\n"),exit(1);
 
@@ -710,6 +717,7 @@ char chaine [12];
 		for (j=i+1;j<dist_mat.n;j++)
 			{
 			k=dist_mat.dist[i][j]/intervalle;
+			if (k<=nbbids+1)
 			histo[k]++;
 			}
 

@@ -86,13 +86,11 @@ int parseItem(PyObject *dict, const char *str, const char t, void *var) {
 static PyObject *
 abgd_main(PyObject *self, PyObject *args) {
 
-  PyObject *dict;
+	PyObject *dict;
 	PyObject *item;
 	const char *separator_str = NULL;
 	char separator;
 
-	// char *file;
-	// char dirfiles[128],
 	const char *file = NULL;
 	const char *dirfiles = NULL;
 	const char *dirfiles_default = ".";
@@ -112,7 +110,7 @@ abgd_main(PyObject *self, PyObject *args) {
 	double *vals;                   /* pairwise distances */
 	double minSlopeIncrease=1.5;
 	double minDist=0.001;
-
+	double *bcod;
 	float ts_tv=2.0; /*defautl value for trans/transv rate for Kimura*/
 	long NVal=0;                    /* array size */
 	long nval=0;                    /* number of pairwise comparisons */
@@ -130,9 +128,9 @@ abgd_main(PyObject *self, PyObject *args) {
 
 	short opt_recursion=0;           /* shall we attempt to re-split the primary partition ? */
 
-	short verbose;            /* a bit more verbose */
+	short verbose;									/* a bit more verbose */
 	short stop_at_once=0;
-	char DEBUG;               /* way too much verbose.. only for debugging */
+	char DEBUG;											/* way too much verbose.. only for debugging */
 
 	int myD,imethode=1;
 	int *mySpecies,*specInit;
@@ -150,14 +148,35 @@ abgd_main(PyObject *self, PyObject *args) {
 	     *fout;
 	int nbbids=20;
 	int notreefile=0;/*option for only groups*/
-
+	int nbreal;
+	struct tm      *tm;
 	int ncomp_primary=0;
+	char buffer2[80];
+	Spart *myspar,*myspar2;
+	int **nb_subsets;
+	struct stat st;
+	struct stat     statbuf;
+	FILE *fres=stdout;
+	char dataFilename[256];
+	char buffer[80];
+   	struct stat stfile = {0};
+char *bout;
+
+
+	// stat(argv[0], &statbuf);
+  //   tm = localtime(&statbuf.st_mtime);
+	//
+ 	// strftime(buffer,80,"%x - %I:%M%p", tm); // 11/19/20 - 05:34PM
+	// strftime(buffer2,80,"%FT%T", tm); // 11/19/20 - 05:34PM
+	strcpy(buffer, "11/19/20 - 05:34PM");
+	strcpy(buffer2, "11/19/20 - 05:34PM");
 
 	// *dirfiles='.';
 	// *(dirfiles+1)='\0';
 	ts_tv=2;
 	DEBUG=0;
 	verbose=0;
+
 
 	if (parseItem(PyModule_GetDict(self), "separator", 's', &separator_str)) return NULL;
 	if (!separator_str) {
@@ -228,13 +247,32 @@ abgd_main(PyObject *self, PyObject *args) {
 	if (parseItem(dict, "simple", 'b', &notreefile)) return NULL;
 	printf("> notreefile = %i\n", notreefile);
 
-	if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
+	//check that dirfiles ends by a '/' otherwise may have some pb
+
+	if (strrchr(file,'/'))
+		sprintf(dataFilename,"%s",strrchr(file,'/')+1);
+	else
+		sprintf(dataFilename,"%s",file);
+	if (strrchr(dataFilename,'.'))
+		{bout=strrchr(dataFilename,'.'); (*bout) ='\0';}
+//check if output dir file exist an create
+
+
+if (stat(dirfiles, &stfile) == -1)
+    mkdir(dirfiles, 0700);
+
+	f=fopen(file,"r");
+	if (f==NULL)printf("Cannot locate your file. Please check, bye\n"),exit(1);
+
+		if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
+	simplename = Built_OutfileName( file );
+//	printf("%s\n",simplename);
 
 	mySpecies=malloc(sizeof(int)*nbStepsABGD+1);
 	specInit=malloc(sizeof(int)*nbStepsABGD+1);
 
 	myDist = Compute_myDist(  minDist,  MaxDist,  nbStepsABGD );
-
+	bcod=malloc(sizeof(double*)*nbStepsABGD);
 
 	NVal=0;
 	output_slope=0;
@@ -256,6 +294,25 @@ abgd_main(PyObject *self, PyObject *args) {
 		}
 	else
 		distmat = read_distmat(f,ts_tv,fmeg);
+
+	printf("ok\n");
+
+		myspar=malloc(sizeof(Spart)*distmat.n);
+		myspar2=malloc(sizeof(Spart)*distmat.n);
+		nb_subsets=malloc(sizeof(int *) *nbStepsABGD);
+
+		for (i=0;i<nbStepsABGD;i++)
+			nb_subsets[i]=malloc(sizeof(int)*2);
+		for (i=0;i<distmat.n;i++)
+		{
+			myspar[i].name=malloc(sizeof(char)*strlen( distmat.names[i])+1);
+			strcpy_spart(myspar[i].name,distmat.names[i]);
+			myspar2[i].name=malloc(sizeof(char)*strlen( distmat.names[i])+1);
+			strcpy_spart(myspar2[i].name,distmat.names[i]);
+			myspar[i].specie=malloc(sizeof(int)*nbStepsABGD);
+			myspar2[i].specie=malloc(sizeof(int)*nbStepsABGD);
+		}
+
 	if (verbose && c=='>')
 	{
 	FILE *ftemp;
@@ -272,6 +329,7 @@ abgd_main(PyObject *self, PyObject *args) {
 		{
 		if (verbose)fprintf(stderr,"\nbuilding newick tree for your data (it can take time when many sequences)\n");
 		newickStringOriginal=compute_DistTree(  distmat, dirfiles );
+
 		newickString= malloc( (size_t)  sizeof(char) * strlen(newickStringOriginal)+1);
 		if (!newickString )
 			printf("pb malloc newick\n"),exit(1);
@@ -377,6 +435,8 @@ abgd_main(PyObject *self, PyObject *args) {
 
 		specInit[myD]=comp.nc;
 
+		bcod[myD]=my_abgd.Dist;
+
 		if (withallfiles)
 			{
 
@@ -386,9 +446,8 @@ abgd_main(PyObject *self, PyObject *args) {
 				printf("problem opening result file %s\n",file_name), exit(1);
 			sprintf(file_name,"%s%c%s.partinit.%d.tree",dirfiles,separator,simplename,myD+1);
 			f2=fopen(file_name,"w");
-			if (f2==NULL)
-				printf("problem opening result file %s\n",file_name), exit(1);
-			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0);
+			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
+			mem_spart_files(comp , myspar,myD,nb_subsets,0,distmat.n,fres);
 			fclose(fout);
 			/* reseting newick string to original */
 			strcpy(newickString,newickStringOriginal);//make a copy because going to modify it in next function
@@ -405,6 +464,7 @@ abgd_main(PyObject *self, PyObject *args) {
 				printf("problem opening result file %s\n",file_name), exit(1);
 
 			print_groups_files(  comp ,  distmat ,  fout,0);
+			mem_spart_files(comp , myspar,myD,nb_subsets,0,distmat.n,fres);
 			fclose(fout);
 			}
 
@@ -429,8 +489,7 @@ abgd_main(PyObject *self, PyObject *args) {
 
 				reset_composante( &recursive_comp );                     /* needed for the free in case of no new group */
 
-				//bzero( (void *)mask, (size_t)distmat.n*sizeof(char) );   /* built mask used to only consider some cells of the matrix */
-				memset((void *)mask, 0, (size_t)distmat.n*sizeof(char));	/* Replaces the above */
+				bzero( (void *)mask, (size_t)distmat.n*sizeof(char) );   /* built mask used to only consider some cells of the matrix */
 				for(b=0;b<comp.n_in_comp[a]; b++)
 					mask[ comp.comp[a][b] ] = 1;
 
@@ -480,7 +539,7 @@ abgd_main(PyObject *self, PyObject *args) {
 
 
 
-
+		//bcod[myD]=recursive_abgd.Dist;
 		printf("Partition %d : %d / %d groups with / out recursion for P= %f\n",  myD+1, comp.nc,ncomp_primary, MaxDist );
 		fflush(stdout);
 
@@ -507,10 +566,8 @@ abgd_main(PyObject *self, PyObject *args) {
 			sprintf(file_name,"%s%c%s.part.%d.tree",dirfiles,separator,simplename,myD+1);
 			f2=fopen(file_name,"w");
 
-			if (fout==NULL)
-				printf("problem opening result file %s\n",file_name), exit(1);
-
-			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0);
+			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
+			mem_spart_files(comp ,  myspar2,myD,nb_subsets,1 ,distmat.n,fres);
 
 			fclose(fout);
 
@@ -529,6 +586,8 @@ abgd_main(PyObject *self, PyObject *args) {
 				printf("problem opening result file %s\n",file_name), exit(1);
 
 		print_groups_files(  comp ,  distmat ,  fout,0);
+		mem_spart_files(comp ,  myspar2,myD,nb_subsets,1 ,distmat.n,fres);
+
 		fclose(fout);
 		}
 
@@ -544,7 +603,7 @@ abgd_main(PyObject *self, PyObject *args) {
 		reset_composante( &comp);
 		free(ValArray);
 	}
-//	printf("***************%d et nc=%d %d \n",myD,comp.nc,stop_at_once);
+ //printf("***************%d et nc=%d %d \n",myD,comp.nc,stop_at_once);
 	if ((myD==1 && comp.nc<=1) || (myD==1 && stop_at_once==1))
 	   printf("Only one partition found with your data. Nothing to output. You should try to rerun with a lower X (< %f) **Stop here**<BR>\n", minSlopeIncrease);
 	else
@@ -569,6 +628,11 @@ abgd_main(PyObject *self, PyObject *args) {
 			printf("Description of %d newick trees in from init/recursives partition:\n",myD*2);
 			for (c=0;c<myD;c++)
 				printf("%s%c%s.[partinit/part].%d.tree\n",dirfiles,separator,simplename,c+1);
+			//printf("Spart files: Spart.file Spart_rec.file\n");
+			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
+			printf("************%d<%d %d\n",myD-1,nbStepsABGD,nbreal);
+
+			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,buffer2,fres,"",meth,minSlopeIncrease,bcod);
 			}
 		else
 		if (notreefile)
@@ -583,22 +647,37 @@ abgd_main(PyObject *self, PyObject *args) {
 
 		printf("---------------------------------\n");
   		}
+
 	free_distmat(  distmat );
 	if (stop_at_once==0 )
 	free_composante(comp);
 		if (withallfiles)
-	free(newickString);
+			free(newickString);
 
+	free(bcod);
 	free(mySpecies);
-
 	free(mask);
+	free(specInit);
 
-	if (file) free(file);
-	if (dirfiles!=dirfiles_default) free(dirfiles);
+	for (i=0;i<nbStepsABGD;i++)
+			free(nb_subsets[i]);
+	free(nb_subsets);
 
-  //return PyLong_FromLong(sts);
-  Py_INCREF(Py_None);
-  return Py_None;
+	for (i=0;i<distmat.n;i++)
+		{
+			free(myspar[i].name);
+			free(myspar2[i].name);
+
+			free(myspar[i].specie);
+			free(myspar2[i].specie);
+
+		}
+
+	free (myspar);
+	free (myspar2);
+
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 static PyObject *

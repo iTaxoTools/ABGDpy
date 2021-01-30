@@ -14,7 +14,7 @@
 	You should have received a copy of the GNU Lesser General Public License
 	along with this program; if not, write to the Free Software
 	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- 
+
  	for more information, please contact guillaume achaz <achaz@abi.snv.jussieu.fr>/<gachaz@gmail.com>
 
 */
@@ -24,11 +24,11 @@
         file     : abggCore.c -- all core fonction for automatic barcod gap discovery
         function : rank values and find a gap in their density - devised to find the limit
 	           	between population and species in phylogeography (done with/for Nicolas Puillandre)
-                                                 
+
         created  : April 2008
         modif    : Nov 09 --stable version-- (with a minimum of slope increase)
         modif    : April 10 --stable version-- (with (A) some minimum divergence and (B) at least 1.5 times of slope increase)
-		  
+
         author   : gachaz
 *****/
 
@@ -38,8 +38,11 @@
 #include <time.h>
 #include <float.h>
 #include <math.h>
+#include <unistd.h>
+#include <strings.h>
 #include <string.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>  /* errno */
 #include "abgd.h"
@@ -63,7 +66,7 @@ static short verbose;
 #define NTAB 32
 #define NDIV (1+(IM-1)/NTAB)
 
-#define EPS FLT_MIN 
+#define EPS FLT_MIN
 #define RNMX (1.0-EPS)              /* RNMX should be the largest floating value less than 1 (numrec p 280) */
 /*
 	Return a number between ]0.00,1.00] (( now certain because of a bug Apr 2007 ))
@@ -108,104 +111,119 @@ double ran1()
 #undef RNMX
 
 
-/*out put some error in html way because this is mainly important for cgi scripts but some fonction of Core are calling it*/
-void html_error(int nb)
+
+void exit_properly(char *ledir)
 {
-printf("******abgdWeb Error %d ****<BR>",nb);
+	char commande [1024];
+	if (strlen (ledir) >1)
+	{
+	sprintf (commande, "mv %s%s/results_.html %s%s/results.html", WORKDIR, ledir, WORKDIR, ledir);
+
+	system(commande);
+	}
+	exit(1);
+}
+
+/*out put some error in html way because this is mainly important for cgi scripts but some fonction of Core are calling it*/
+void html_error(FILE *fres,int nb)
+{
+fprintf(fres,"******abgdWeb Error %d ****<BR><B><H4>",nb);
 switch (nb)
 	{
 	case 1:
 	case 2:
 	case 3:
 	case 4:
-	
+
 	case 5:
-	
-	case 10:	
-	printf("Pb while reading CGI data. If this problem persists please contact <A HREF=\"mailto:%s\"> web site administrator</A>\n",WEB_ADMIN) ;
+
+	case 10:
+	fprintf(fres,"Pb while reading CGI data. If this problem persists please contact <A HREF=\"mailto:%s\"> web site administrator</A>\n",WEB_ADMIN) ;
 	break;
-	
+
 	case 8:
-	printf("Please try to rename your file with \".txt\" extension. If the problem persists or if the file extension is already \".txt\", please contact <A HREF=\"mailto:%s\"> web site administrator</A>\n",WEB_ADMIN) ;
+	fprintf(fres,"Please try to rename your file with \".txt\" extension. If the problem persists or if the file extension is already \".txt\", please contact <A HREF=\"mailto:%s\"> web site administrator</A>\n",WEB_ADMIN) ;
+	break;
 
 	case 11:
-	printf("Your data appears to be a matrix distance but some characters have been found instead of numerical value\n") ;
-	printf("(inf or sup matrix are not supported _ yet_)\n") ;	break;
-	
+	fprintf(fres,"Your data appears to be a matrix distance but some characters have been found instead of numerical value\n") ;
+	fprintf(fres,"(inf or sup matrix are not supported _ yet_)\n") ;
+	break;
+
 	case 20:
 	case 56:
 	case 144:
-	printf("can't open file. please contact <A HREF=\"mailto:%s\"> web site administrator</A>\n",WEB_ADMIN) ;
+	fprintf(fres,"can't open file. please contact <A HREF=\"mailto:%s\"> web site administrator</A>\n",WEB_ADMIN) ;
 	break;
 
 	case 60:
-	printf("Your data contains at least one other symbol than ATGC-+NMRWSYKVHDBNZ<BR>Please correct it\n");
+	fprintf(fres,"Your data contains at least one other symbol than ATGC-+NMRWSYKVHDBNZ<BR>Please correct it\n");
 	break;
-	
+
     case 50:
     case 66:
-	printf("Weird FASTA format . Please check your data\n");
-    break;       
+	fprintf(fres,"Weird FASTA format . Please check your data\n");
+    break;
 
-    case 95:    
-	printf("Please check the P value you entered\n");
-    break;   
-    
-    case 99:    
-	printf("FASTA sequences not all same size . Please check your data\n");
-    break;   
-    
+    case 95:
+	fprintf(fres,"Please check the P value you entered\n");
+    break;
+
+    case 99:
+	fprintf(fres,"FASTA sequences not all same size . Please check your data\n");
+    break;
+
     case 100:
-	printf("Length of seq appears to be 0\n");
-    break; 
-    
+	fprintf(fres,"Length of seq appears to be 0\n");
+    break;
+
   	case 105:
-	printf("Either you have a CVS MEGA matrix and didn't check the option in previous page, <BR>either your matrix is not well formated\n");
-    break;   	
-    
+	fprintf(fres,"Either you have a CVS MEGA matrix and didn't check the option in previous page, <BR>either your matrix is not well formated\n");
+    break;
+
 	case 110:
-	printf("ABGD can't deal with sequences which names are only composed of digits, or with \": , ( )\" present in names. <BR>Please add at least one alphabetic character in sequences names or remove others\n");
+	fprintf(fres,"ABGD can't deal with sequences which names are only composed of digits, or with \": , ( )\" present in names. <BR>Please add at least one alphabetic character in sequences names or remove others\n");
 	break;
-	
+
     case 111:
 	case 112:
     case 155:
     case 55:
     case 44:
-    printf("Memory pb. can't malloc. Try with smaller data file\n");
-    break; 
-   
+    fprintf(fres,"Memory pb. can't malloc. Try with smaller data file\n");
+    break;
+
    	case 177:
-     printf("Minimum number is 2. Bye\n");
-    break; 
- 
-   
+     fprintf(fres,"Minimum number is 2. Bye\n");
+    break;
+
+
     case 200:
     case 300:
-	printf("pb while choosing distance model\n");
+	fprintf(fres,"pb while choosing distance model\n");
     break;
     case 255:
-    printf("newick file has some pb.. This should never arrives so.. try again\n");
+    fprintf(fres,"newick file has some pb.. This should never arrives so.. try again\n");
     break;
-    
+
     case 257:
-    printf("MEGA distance file not well formated. Please resave your file with MEGA\n");
+    fprintf(fres,"MEGA distance file not well formated. Please resave your file with MEGA\n");
     break;
-    
+
     case 344:
-  
-    printf("MEGA CSV distance file not well formated. Please resave your file with MEGA\n");
+
+    fprintf(fres,"MEGA CSV distance file not well formated. Please resave your file with MEGA\n");
     break;
-     
-    case 343: 
-    printf("Pb reading MEGA CSV distance file . Keyword \"Table\" not found at bottom of the file\n");
+
+    case 343:
+    fprintf(fres,"Pb reading MEGA CSV distance file . Keyword \"Table\" not found at bottom of the file\n");
     break;
-    
+
     default:
-    printf("Undocumented error \n");
+    fprintf(fres,"Undocumented error \n");
     }
 
-    exit(1);
+    fprintf(fres,"</H4></B>");
  }
 
 
@@ -213,13 +231,13 @@ switch (nb)
 double uniform_dev( void ){
 
 	double dum= ran1();
-	
+
 	if(dum == 0.0)fprintf(stderr, "ran1() can also return 0\n");
 
 	if(dum == 1.0)dum=0;
-	
+
 	return dum;
-	
+
 }
 
 
@@ -253,9 +271,9 @@ short compare_DNA( char s1, char s2 ){
 	/*
 		What about deletion
 	*/
-	
+
 	if(s1 == '-' || s2 =='-' || s1 =='+' || s2 == '+'){                      /* consider deletion as a diff only if the alignemt has been recoded */
-	
+
 		if(  (s1 == '-' && s2 == '+') || (s2 == '-' && s1 == '+') )
 			return 0;
 		else
@@ -280,10 +298,10 @@ short compare_DNA( char s1, char s2 ){
 		if(s1=='M'||s1=='R'||s1=='W'||s1=='V'||s1=='H'||s1=='D')	return 1;
 		else 							return 0;
 	}
-	
+
 	/*
 		if only one is a C
-	*/	
+	*/
 	if(s1=='C'){
 		if( s2=='M'||s2=='S'||s2=='Y'||s2=='V'||s2=='H'||s2=='B' )	return 1;
 		else 							return 0;
@@ -295,7 +313,7 @@ short compare_DNA( char s1, char s2 ){
 
 	/*
 		if only one is a G
-	*/	
+	*/
 	if(s1=='G'){
 		if( s2=='R'||s2=='S'||s2=='K'||s2=='V'||s2=='D'||s2=='B' )	return 1;
 		else 							return 0;
@@ -304,10 +322,10 @@ short compare_DNA( char s1, char s2 ){
 		if( s1=='R'||s1=='S'||s1=='K'||s1=='V'||s1=='D'||s1=='B' )	return 1;
 		else 							return 0;
 	}
-	
+
 	/*
 		if only one is a T
-	*/	
+	*/
 	if(s1=='T'){
 		if( s2=='W'||s2=='Y'||s2=='K'||s2=='H'||s2=='D'||s2=='B' )	return 1;
 		else 							return 0;
@@ -316,8 +334,8 @@ short compare_DNA( char s1, char s2 ){
 		if( s1=='W'||s1=='Y'||s1=='K'||s1=='H'||s1=='D'||s1=='B' )	return 1;
 		else 							return 0;
 	}
-		
-	
+
+
 	/*
 		More complex case
 	*/
@@ -329,13 +347,13 @@ short compare_DNA( char s1, char s2 ){
 
 	if( (s1=='W' && s2=='S') || (s1=='S' && s2=='W')  )
 		return 0;
-	
-	
+
+
 	/*
 		Else there is at least one overlap
 	*/
 	return 1;
-	
+
 }
 
 
@@ -351,34 +369,37 @@ struct Peak FindFirstPeak( double *Array, long N, int winsiz, short output_slope
 
 	long i,             /* Indice of the slope */
 	     top=0;         /* indices the summit of the preak */
-	     
-	     
+
+
 	double *Slope;           /* Slope <=> derivative of array */
 	double SlopeMax;         /* Current max of Slope */
-	
-	
+
+
 	float Mean_i=0;          /* The a priori rank of the summit --> then it is set to j+0.5 */
-	
+
 	double Mean_dist=0.0;    /* The distance that corresponds to SlopeMax */
-		
+
 	struct Peak my_abgd;     /* The structure that contain both the estimated indice and distance */
-		
+
 //	extern char DEBUG;
-	
-			
+
+
 	long wt;
 	long ct;
-	
+
+
+//	DEBUG=1;
+
 	my_abgd.Dist = -1;
 	my_abgd.Rank = -1;
 	my_abgd.theta_hat = 0;
-	
+
 	/*
 	printf("\n\n***********%f******\n",minSlopeIncrease);
 	printf("Prior: %f\n", PriorDist);
 	printf("ws: %d\n", winsiz);
 	*/
-	
+
 	/*
 		Store Slope
 	*/
@@ -386,11 +407,11 @@ struct Peak FindFirstPeak( double *Array, long N, int winsiz, short output_slope
 	Slope = (double *)malloc(  (size_t) (N-winsiz+1) *sizeof(double) );
 	if(!Slope )fprintf(stderr, "FindMaxDifferiental: cannot allocate SlopeS --%ld double--, bye\n", N-winsiz+1 ), exit(2);
 
-	
+
 	for(i=0; i <= N-winsiz ; i++)
 		Slope[i] = (Array[i+winsiz-1]-Array[i])/(double)(winsiz-1);
 
-	
+
 
 
 	/*
@@ -401,14 +422,14 @@ struct Peak FindFirstPeak( double *Array, long N, int winsiz, short output_slope
 
 	for(i=1; i<N && Array[i] <= PriorDist  ; i++);
 	my_abgd.theta_hat = Pi[i-1];
-	
-	
-		
+
+
+
 	/*printf("theta[%d] is %f\n", i-1, Pi[i-1]);*/
 
-	
+
 	/*
-		Print out stuf if needed
+		Print out stuff if needed
 	*/
 
 	if(output_slope)
@@ -418,56 +439,57 @@ struct Peak FindFirstPeak( double *Array, long N, int winsiz, short output_slope
 	if(DEBUG){
 		for(i=0;i<N;i++){
 			if(i<N-winsiz)
-				fprintf( stdout, "[%ld] ; Val= %.5f ; Slope= %f\n",i,Array[i], Slope[i] );
+				fprintf( stdout, "[%ld] ; Val= %.5f -> %.5f (ws: %d) ; Slope= %f\n",i,Array[i],Array[i+winsiz-1], winsiz, Slope[i] );
 			else
 				fprintf( stdout, "[%ld] ; Val= %.5f \n",i, Array[i]  );
 		}
+		exit(5);
 	}
 
 
 
 	/*
 		1. Find the first slope max
-		
+
 	*/
 
 	i=0;                     /* start at the first Slope value */
 	top=0;                   /* set the top of  peaks and the structure to default value */
 	my_abgd.Dist = -1;
 	my_abgd.Rank = -1;
-	
+
 
 	SlopeMax = Slope[0];
-for(i=1; i < N-winsiz && Array[i+winsiz] <= PriorDist; i++){
+	for(i=1; i < N-winsiz && Array[i+winsiz] <= PriorDist; i++){
 		if( Slope[i] > SlopeMax )                      /*  set SlopeMax as the highest Slope inside the [0, Prior] */
 			SlopeMax = Slope[i];
 	}
-	
+
 
 	while( i<N-winsiz ){
-		
-			
+
+
 		/*
 			Find the first value with enough divergence --> get the peak
 		*/
-				
+
 		while(  i<N-winsiz && Slope[i+1] >= Slope[i] ){     /* Find a Local Maxima */
 			i++;
 		}
-		
+
 		/*printf("  First Max == i: %ld --SlopeMax: %f--\n", i, SlopeMax);*/
-		
+
 		/*
 			2. Explore Local Maxima on right (winsiz scale)
 		*/
-	
+
 		top = i;
 		while( i<N-winsiz  && ABS(i-top) <= winsiz/10  ){                 /* explore winsiz/10 from slope[top] on right */
-			
+
 			if(Slope[i] > Slope[top]){
 				top=i;
 			}
-			
+
 			i++;
 		}
 
@@ -480,33 +502,33 @@ for(i=1; i < N-winsiz && Array[i+winsiz] <= PriorDist; i++){
 		*/
 		Mean_i=0;
 		Mean_dist=0;
-		
+
 		ct = top;
-			
+
 		for( wt = winsiz-1; wt>=2; wt--){
 
 /*			printf("ct: %ld, wt: %ld ++  Slope[l]: %f -- Slope[r]: %f\n", ct, wt, Array[ct+wt-1]-Array[ct] , Array[ct+1+wt-1]-Array[ct+1]);*/
 
 			if( Array[ct+wt-1]-Array[ct] <   Array[ct+1+wt-1]-Array[ct+1] && ct < N-wt-1)
-				ct++;				
+				ct++;
 		}
 		Mean_dist = (Array[ct]+Array[ct+1])/2.0;
-		
 
 
-		
+
+
 		/*
 		printf("   final countdown == from top: %ld to ct: %ld ; MeanDist: %f\n", top, ct, (Array[ct]+Array[ct+1])/2.0);
 		printf(  "(ct:%ld) Pi[ct]: %f (obs) vs %f (limit) && Slope[top] %f vs SlopeMax*minSlopeInc %f*%f=%f\n",ct, Mean_dist  ,
 		          2.581 * 2 * my_abgd.theta_hat , Slope[top], SlopeMax, minSlopeIncrease, SlopeMax * minSlopeIncrease );
 		*/
-		
+
 		if( Mean_dist  > 2.581 *2* my_abgd.theta_hat &&           /* because theta estimates can be as half as true value */
 		    Slope[top] > minSlopeIncrease*SlopeMax){                             /* really we need some slope jump ! */
-		
-		
+
+
 			/* printf("++++ thetaF Pi[j]= %f, ws %d (prev: %f) %f\n", Pi[ct], winsiz, my_abgd.theta_hat,SlopeMax); */
-			
+
 
 			my_abgd.Dist = Mean_dist;                       /* this the chosen candidate */
 			my_abgd.Rank = ct+0.5;
@@ -516,14 +538,14 @@ for(i=1; i < N-winsiz && Array[i+winsiz] <= PriorDist; i++){
 			/*
 				if the Pi[ct] is smaller, set it as the new theta and run a next round
 			*/
-			if( Pi[ct] <= my_abgd.theta_hat && my_abgd.Rank == -1 ){ 
-				
+			if( Pi[ct] <= my_abgd.theta_hat && my_abgd.Rank == -1 ){
+
 				SlopeMax = 0;
 				i=0;
 				top=0;
 			}
 			else{
-				
+
 				break;
 			}
 
@@ -531,18 +553,18 @@ for(i=1; i < N-winsiz && Array[i+winsiz] <= PriorDist; i++){
 		else{
 			/* still not sure about this --for now update SlopeMax only if Pi[ct] <= my_abgd.theta_hat */
 
-			/*SlopeMax= (Slope[top]>SlopeMax  )?Slope[top]:SlopeMax; */ 
+			/*SlopeMax= (Slope[top]>SlopeMax  )?Slope[top]:SlopeMax; */
 			SlopeMax= ( Slope[top]>SlopeMax && Pi[ct] <= my_abgd.theta_hat )?Slope[top]:SlopeMax;
-			
+
 			/*printf("-->%f\n",SlopeMax);*/
-			
-			
+
+
 			i =  (top>ct)?top+1:ct+1;
 			while( i<N-winsiz && Slope[i+1] <=  Slope[i] )           /* go downhill as far as we can */
-				i++;			
-			
+				i++;
+
 		}
-				
+
 	}
 
 	free(Slope);
@@ -557,15 +579,15 @@ struct Peak find_abgd( double *Array, long N, long windsize_min, long windsize_m
 
 	int c,i;
 	int stable=0;
-	
+
 	int windsize_step = (windsize_min>10)?windsize_min/10:1;
-	
+
 	struct Peak my_abgd;
 
-	double *Pi;              /* average from array[0] to array[i] */ 
+	double *Pi;              /* average from array[0] to array[i] */
 
 	double stable_dist=-1;
-	
+
 	my_abgd.Dist = -1;
 	my_abgd.Rank = -1;
 	my_abgd.theta_hat = -1;
@@ -576,38 +598,38 @@ struct Peak find_abgd( double *Array, long N, long windsize_min, long windsize_m
 	for(Pi[0]=Array[0], i=1; i<N ; i++)
 		Pi[i] = (Array[i] + Pi[i-1]*i)/(i+1.0);
 
-	
+
 	for(c=windsize_min; c <= windsize_max && stable<3; c+=windsize_step){
-		
+
 			my_abgd = FindFirstPeak( Array, N, c, output_slope, Pi,  PriorDist, minSlopeIncrease );
-		
+
 			if(DEBUG)
 				fprintf(stderr,"abs( %f - %f )= %f vs %f\n", my_abgd.Dist,stable_dist, fabs(my_abgd.Dist-stable_dist) , 0.1*stable_dist );
-			
+
 			if( my_abgd.Dist != -1 && fabs( my_abgd.Dist-stable_dist) < 0.1*stable_dist ){
-			
+
 				stable++;
 			}
 			else{
 				stable=1;
 				stable_dist=my_abgd.Dist;
 			}
-			
+
 			if(DEBUG)
 				printf("w: %d  d_peak: %f r_peak: %.1f\n", c, my_abgd.Dist, my_abgd.Rank);
-			
-			
+
+
 	}
 
 	if(my_abgd.Dist == -1){
-		
+
 		my_abgd.Dist=Array[N-1];
 		my_abgd.Rank = N+0.5;
-	
+
 	}
 
 	free(Pi);
-	
+
 
 	return my_abgd;
 }
@@ -633,7 +655,7 @@ void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_ma
 
 	if (l==0)
 		html_error(100);
-	
+
 	for (a=0;a<nseq-1;a++)
 	{
 		s1= mesSeqs[a].seq;
@@ -651,7 +673,7 @@ void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_ma
 					v=v+1;
 				if ( ( (*(s1+i) )=='-') || ((*(s2+i) )=='-') ||	((*(s1+i) )=='N') || ((*(s2+i) )=='N' ))
 				  ncor++;
-				}	
+				}
 			v=v/(double)(l-ncor);
 			my_mat.dist[a][b]=my_mat.dist[b][a]=v;
 		}
@@ -659,7 +681,7 @@ void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_ma
 }
 */
 
-void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_mat)
+void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_mat,FILE *fres,char *ledir)
 
 {
 	char *s1,*s2,c1,c2;;
@@ -668,19 +690,19 @@ void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_ma
 	int nseq=my_mat.n;
 
 	if (l==0)
-		html_error(100);
+		html_error(fres,100);
 	;
 	for (a=0;a<nseq-1;a++)
 	{
 		s1= mesSeqs[a].seq;
 		my_mat.dist[a][a]=0;
-	
+
 		for (b=a+1;b<nseq;b++)
 		{
 			v=0;ncor=0;
 			s2= mesSeqs[b].seq;
 			if (check_compat(s1,s2, l)==0)
-			{printf("<H2>Sequence %s and %s have no common site. Distance can't be computed. Bye <BR>",my_mat.names[a],my_mat.names[b]);fflush(stdout);exit(1);}
+			{fprintf(fres,"<H4>Sequence %s and %s have no common site. Distance can't be computed. Bye </H4><BR>",my_mat.names[a],my_mat.names[b]);fclose(fres);exit_properly(ledir);}
 
 			for (i=0;i<l;i++)
 				{
@@ -688,16 +710,16 @@ void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_ma
 				c2=toupper(*(s2+i));
 				if(compare_DNA(c1,c2)==0)
 				  v=v+1;
-				  
+
 				//if (toupper(*(s1+i) )!=toupper(*(s2+i) ))
 				//	v=v+1;
 				if ( ( (*(s1+i) )=='-') || ((*(s2+i) )=='-') ||	((*(s1+i) )=='N') || ((*(s2+i) )=='N' ))
 				  ncor++;
-				  
-				  
-				  
-				}	
-		
+
+
+
+				}
+
 			v=((v+1)/(double)(l-ncor+1));
 			my_mat.dist[a][b]=my_mat.dist[b][a]=v;
 		}
@@ -709,7 +731,7 @@ void distancesimple(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_ma
 /*do not take in consideration gaps or N*/
 
 
-void distanceJC69 (struct FastaSeq *mesSeqs, int l, struct  DistanceMatrix  mymat)
+void distanceJC69 (struct FastaSeq *mesSeqs, int l, struct  DistanceMatrix  mymat,FILE *fres,char *ledir)
 //double distanceJC69 (char *s1,char *s2, int l)
 {
 double v=0,h;
@@ -721,7 +743,7 @@ int nseq=mymat.n;
 
 
 if (l==0)
-html_error(100);
+html_error(fres,100);
 
 for (a=0;a<nseq-1;a++)
 	{
@@ -732,7 +754,7 @@ for (a=0;a<nseq-1;a++)
 		s2= mesSeqs[b].seq;
 		newl=0;v=0;
 		if (check_compat(s1,s2, l)==0)
-			{printf("<H2>Sequence %s and %s have no common site. Distance can't be computed. Bye <BR>",mymat.names[a],mymat.names[b]);fflush(stdout);exit(1);}
+			{fprintf(fres,"<H4>Sequence %s and %s have no common site. Distance can't be computed. Bye </H4><BR>",mymat.names[a],mymat.names[b]);fclose(fres);exit_properly(ledir);}
 //		printf("S1= %s\nS2= %s\n",s1,s2);
 		for (i=0;i<l;i++)
 			{
@@ -746,27 +768,32 @@ for (a=0;a<nseq-1;a++)
 		//	printf("diff s1:%d s2:%d v=%lf avail=%d\n",a,b,v,newl);
 			if (newl!=0)
 			  v=v/(double)newl;
+//			if (v>=0.75)v=0.7499;//SOFIZ
 			//printf("v/newl=%lf, log(%lf)\n" ,v,1.0-((4.0/3.0)*v));
+
+			if(v>0.74)v=0.74;
+
 			h=(-3.0/4.0)*log(1.0-((4.0/3.0)*v));
+
 			if (h==-0)
 				h=0;
 			//printf("v=%lf, log(%lf) h=%lf log(%f)=%lf\n\n" ,v,1.0-((4.0/3.0)*v),h,1.0-((4.0/3.0)*v),log(1.0-((4.0/3.0)*v)));
 			mymat.dist[a][b]=mymat.dist[b][a]=h;
-			
-		}	
+
+		}
 	}
-printf("doneJC\n");	
+printf("doneJC\n");
 }
 
 
 long del_sequences(char *seq1, char *seq2, long L){
 
 	long i, del=0;
-	
+
 	for(i=0;i<L;i++)
 		if( *(seq1+i) == '-' || *(seq2+i) == '-')
 			del++;
-	
+
 	return del;
 }
 /*
@@ -826,7 +853,7 @@ void transition_transversion_sequences(char *seq1, char *seq2, long L, long *tsi
 	long i;
 
 	*tsi=*tsv=0;
-	
+
 	for( i=0 ; i<L ; i++ )
 		if ( compare_DNA( *(seq1+i), *(seq2+i) ) == 0 ){
 			if( IsTransition( *(seq1+i), *(seq2+i) ) == 1 )
@@ -847,7 +874,7 @@ double Q_given_t_R( double t, double R ){
 double compute_logL_given_t_R( long nsites, long n_tsv, long n_tsi, double t, double R ){
 //	if (P_given_t_R(t,R)==0L || Q_given_t_R(t,R)==0L)
 //		printf("Kimura failed. Please use another distance matrix\n"),exit(1);
-	return nsites*log(0.25) +																																																								
+	return nsites*log(0.25) +
 	       (nsites- n_tsv-n_tsi)*log( 1.00 - P_given_t_R(t,R)  - Q_given_t_R(t,R) ) +
 	       n_tsi * log( P_given_t_R(t,R) ) +
 	       n_tsv * log( Q_given_t_R(t,R) );
@@ -867,27 +894,27 @@ double find_ML_t_given_R( double R, long nsites, long n_tsv, long n_tsi ){
 
 	double t = compute_k80( nsites, n_tsv, n_tsi );     /* seed it with an empirical value from the data -- Kimura 80 */
 
-	
+
 	double epsilon=1e-7;
 	double eps=1e-3;
-	
+
 /*	printf("dist is %.10f\n", t );*/
 
 	while( eps >= epsilon ){
-	
+
 		while( compute_logL_given_t_R( nsites, n_tsv, n_tsi, t+eps, R ) > compute_logL_given_t_R( nsites, n_tsv, n_tsi, t, R )  )
 			t+=eps;
 		while( compute_logL_given_t_R( nsites, n_tsv, n_tsi, t-eps, R ) > compute_logL_given_t_R( nsites, n_tsv, n_tsi, t, R )  )
 			t-=eps;
-		
+
 		eps *= 0.1;
-		
+
 	}
-	
+
 	return t;
 }
 
-void distanceK80 (struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_mat){
+void distanceK80 (struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_mat,FILE *fres,char *ledir){
 	int i,j;
 	long tsi,tsv;
 	long del;
@@ -895,24 +922,24 @@ int nseq=my_mat.n;
 
 
 	for(i=0;i<nseq; i++){
-	
+		printf("seq:%d\n",i);
 		my_mat.dist[i][i]=0;
-	
+
 		for(j=i+1;j<nseq; j++){
-			
+
 			if (check_compat(mesSeqs[i].seq, mesSeqs[j].seq, l)==0)
-				{printf("<H2>Sequence %s and %s have no common site. Distance can't be computed. Bye <BR>",my_mat.names[i],my_mat.names[j]);fflush(stdout);exit(1);}
-			
+				{fprintf(fres,"<H4>Sequence %s and %s have no common site. Distance can't be computed. Bye </H4><BR>",my_mat.names[i],my_mat.names[j]);fclose(fres);exit_properly(ledir);}
+
 			transition_transversion_sequences(mesSeqs[i].seq, mesSeqs[j].seq, l, &tsi, &tsv);
-		
+
 			del = del_sequences(mesSeqs[i].seq, mesSeqs[j].seq,l);
-		
+
 			my_mat.dist[i][j] =my_mat.dist[j][i] = find_ML_t_given_R( my_mat.ratio_ts_tv, l-del, tsv, tsi );
-		
+
 			if (my_mat.dist[i][j]==-0) //happens sometimes
 				my_mat.dist[i][j] =my_mat.dist[j][i] = 0;
-			
-		
+
+
 		}
 	}
 //print_distmat(my_mat);
@@ -932,10 +959,10 @@ for (i=0;i<l;i++)
 	c2=toupper(*(s2+i));
 	if ((c1=='-' && c2!='-') || (c2=='-' && c1!='-') || (c2=='-' && c1=='-'))
 		newl++;
-	}	
-	
+	}
 
-	
+
+
 return (l-newl);
 }
 
@@ -944,7 +971,7 @@ return (l-newl);
 
 /*compute distance according to Tmura Nei method*/
 /*do not take in consideration gaps or N*/
-void distanceTN93(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_mat)
+void distanceTN93(struct FastaSeq *mesSeqs,int l,struct  DistanceMatrix  my_mat, FILE *fres,char *ledir)
 {
 double v=0;
 double transitions=0,transversions=0,p,q,p1,p2,ga,gg,gc,gt,gr,gy;
@@ -959,7 +986,7 @@ int nseq=my_mat.n;
 
 
 if (l==0)
-html_error(100);
+html_error(fres,100);
 
 for (a=0;a<nseq-1;a++)
 	{
@@ -969,7 +996,7 @@ for (a=0;a<nseq-1;a++)
 		{
 		s2= mesSeqs[b].seq;
 		if (check_compat(s1,s2, l)==0)
-			{printf("<H2>Sequence %s and %s have no common site. Distance can't be computed. Bye <BR>",my_mat.names[a],my_mat.names[b]);fflush(stdout);exit(1);}
+			{fprintf(fres,"<H4>Sequence %s and %s have no common site. Distance can't be computed. Bye </H4><BR>",my_mat.names[a],my_mat.names[b]);fclose(fres);exit_properly(ledir);}
 		newl=0;v=0;
 		for (i=0;i<5;i++)
 			f[i]=0;
@@ -982,18 +1009,18 @@ for (a=0;a<nseq-1;a++)
 				f[(int)(strchr(nuc,c1)-nuc)]++;
 				f[(int)(strchr(nuc,c2)-nuc)]++;
 				}
-		
+
 			if (compare_DNA(c1,c2)==0)
 				{
 				v++;
 				if ((c1=='A' && c2=='G') || (c2=='A' && c1=='G') )transitionsag++;
 				else
 				if ((c1=='C' && c2=='T') || (c2=='C' && c1=='T')) transitionsct++;
-		
+
 				}
-			}	
-		
-		
+			}
+
+
 			transversions=v-transitions;
 			q=transversions/(double)newl;
 			p=transitions/(double)newl;
@@ -1005,16 +1032,36 @@ for (a=0;a<nseq-1;a++)
 			gt=f[3]/(2.0*newl);
 			gr=ga+gg;
 			gy=gc+gt;
-			v = ((-2*ga*gg/gr) * log (1.0 - ((gr/(2.0*ga*gg))*p1) - ((1/(2*gr))*q))) - 
+			v = ((-2*ga*gg/gr) * log (1.0 - ((gr/(2.0*ga*gg))*p1) - ((1/(2*gr))*q))) -
 			(( (2*gt*gc)/gy) * log(1.0 - ((gy/(2.0*gt*gc))*p2)-((1/(2*gy))*q))) -
 			((2.0* ((gr*gy)-( (ga*gg*gy)/gr) - ((gt*gc*gr)/gy))) *log (1.0 - ((1.0/(2.0*gr*gy))*q))) ;
 			if (v==-0)
 				v=0;
 			my_mat.dist[a][b]=my_mat.dist[b][a]=v;
-			
+
 		}
-	}	
+	}
 }
+
+
+
+void strcpy_spart(char *dest,char *chaine)
+{
+
+
+int l=strlen(chaine),i,j;
+
+
+for (i=0,j=0;i<l;i++)
+if (isalnum(chaine[i]) || (chaine[i]=='_'))
+	dest[i]=chaine[i];
+else
+	dest[i]='_';
+
+dest[i]='\0';
+
+}
+
 
 /*some functions to output fonctions in various ways: file, html , stdout*/
 void print_groups( struct Composante my_comp , struct DistanceMatrix distmat  ){
@@ -1023,15 +1070,15 @@ void print_groups( struct Composante my_comp , struct DistanceMatrix distmat  ){
 	int i,j;
 
 	for(i=0; i<my_comp.nc; i++){
-	
+
 		printf("Group[ %d ] n: %d ; id:", i, my_comp.n_in_comp[i] );
-		
+
 		for(j=0; j< my_comp.n_in_comp[i]; j++)
 			printf(" %s", distmat.names[my_comp.comp[i][j]]);
 		printf("\n");
-	
+
 	}
-	
+
 }
 /*if html==1 then print HTML balises*/
 void print_groups_files( struct Composante my_comp , struct DistanceMatrix distmat  ,FILE *f, int html){
@@ -1044,14 +1091,120 @@ void print_groups_files( struct Composante my_comp , struct DistanceMatrix distm
 		fprintf(f,"Group[ %d ] n: %d ;", i, my_comp.n_in_comp[i]);
 		if (html)fprintf(f,"</B>");
 		fprintf(f,"id:" );
-		
+
 		for(j=0; j< my_comp.n_in_comp[i]; j++)
 			fprintf(f," %s", distmat.names[my_comp.comp[i][j]]);
-			
+
 		if (html)fprintf(f,"<BR>\n");else fprintf(f,"\n");
-	
+
 	}
-	
+
+}
+
+//see pb with user dir for abgd CL
+
+void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char *workdir,char *meth,float slope,double *bcode)
+{
+	int i,j,k;
+	FILE *f;
+	char *names[2]={"Spart.file","Spart_rec.file"};
+	char *type[2]={"init","rec"};
+	char lename[512];
+
+
+	for (j=0;j<2;j++)
+	{
+
+		sprintf(lename,"%s%s/%s",workdir,ledir,names[j]);
+
+
+		fprintf(stderr,"PARTFILE: %s******\n",lename);
+		f=fopen(lename,"w");
+		if (f==NULL) {fprintf(fres,"%s not opened",lename);fclose (fres);exit_properly(ledir);}
+		//printf("------>%s\n",lename);
+		fprintf(f,"begin spart;\n");
+		fprintf(f,"Project_name = %s;\n",dataFilename);
+		fprintf(f,"Date = %s;\n",ladate);
+		fprintf(f,"N_spartitions = %d : ",nbstepABGD);
+		for (i=0;i<nbstepABGD-1;i++)
+		{
+			fprintf(f,"%s_abgd_%s_%d / ",dataFilename,type[j],i+1);
+		}
+		fprintf(f,"%s_abgd_%s_%d;\n",dataFilename,type[j],i+1);
+		fprintf(f,"N_individuals = ");
+		for (i=0;i<nbstepABGD-1;i++)
+		{
+			fprintf(f,"%d / ",nbSamples);
+		}
+		fprintf(f," %d;\n",nbSamples);
+
+
+		fprintf(f,"N_subsets = ");
+		for (i=0;i<nbstepABGD-1;i++)
+		{
+			fprintf(f,"%d / ",sub[i][0]);
+
+		}
+		fprintf(f,"%d;\n",sub[i][0]);
+		fprintf(f,"[Generated by ABGD with Distance %s / MinSlope = %f]\n",meth,slope);
+		fprintf(f,"[Barcode gap distance :]\n[");
+		for (i=0;i<nbstepABGD-1;i++)
+		fprintf(f,"%3.2e / ",bcode[i]);
+		fprintf(f,"%e]\n",bcode[i]);
+		fprintf(f,"[WARNING: The sample names below may have been changed to fit SPART specification (only alphanumeric characters and _ )]\n");
+		fprintf(f,"Individual_assignment = \n");
+		for (i=0;i<nbSamples-1;i++)
+		{
+
+			fprintf(f,"%s : ",myspar[i].name); // alea
+			for (k=0;k<nbstepABGD-1;k++)
+				fprintf(f,"%d / ",myspar[i].specie[k]);
+
+			fprintf(f,"%d\n",myspar[i].specie[k]);
+		}
+		fprintf(f,"%s : ",myspar[i].name); // alea
+		for (k=0;k<nbstepABGD-1;k++)
+				fprintf(f,"%d / ",myspar[i].specie[k]);
+
+			fprintf(f,"%d;\n",myspar[i].specie[k]);
+
+		fprintf(f,"end;\n");
+
+		fclose(f);
+	}
+
+
+}
+
+
+
+int locate(int ind,struct Composante my_comp )
+{
+
+
+	int i,j;
+	for(i=0; i<my_comp.nc; i++)
+	{
+		for(j=0; j< my_comp.n_in_comp[i]; j++)
+			if (ind== my_comp.comp[i][j])
+				return i;
+	}
+	return -1;
+}
+
+void mem_spart_files( struct Composante my_comp ,Spart *Myspar,int nbC,int **nbsub,int which,int nbspecimens,FILE *fres){
+int i,j,gr;
+for(i=0; i<nbspecimens; i++){
+	gr=locate(i,my_comp);
+	if (gr==-1){fprintf(fres,"problemo");exit(1);}
+	Myspar[i].specie[nbC]=gr+1;
+
+	}
+	nbsub[nbC][which]=my_comp.nc; //1stcase is the nbr of groups for no rec and 1 for rec
+	//for(i=1; i=<my_comp.nc; i++){ //from one to nbr of groups, how many in groups
+	//nbsub[nbC][i]=my_comp.n_in_comp[i];
+
+
 }
 
 /*
@@ -1062,31 +1215,31 @@ char *extract_posit_mot( char *lastring, char *nom )
 	char *bou,      /* pointers to the string --bou is the first occurence, orig the begining of the string and bou2 later occurences */
 	     *orig,
 	     *bou2;
-	     
+
 	int p;
 
 	orig=lastring;
 
-	
+
 	while(1)
 	{
 		bou=strstr(orig,nom);
-		
+
 		if (bou==NULL)            /* not found, return NULL as an error */
 			break;
-		
+
 		bou2=strstr( bou, nom );    /* look if we encounter the same string further in the string */
-		
+
 		if( bou2 == NULL ) 	    /* no we didn't so previous is the good one */
 			break;
 							/*here we found another occurence of nom in lastring */
 		p=(long)bou-(long)lastring;
 							/*we check that the 1st one found is the good one*/
 							/*here we found another occurence of nom in lastring */
-							
+
 		if (lastring[p-1]==')' || lastring[p-1]=='(' || lastring[p-1]==':'|| lastring[p-1]==',' || lastring[p-1]==' ')
 			break;
-		
+
 		orig=bou+1;
 	}
 
@@ -1117,47 +1270,49 @@ char *extract_posit_mot_2( char *lastring, char *nom )
 /*
 	if html==1 then print HTML balises
 */
-void print_groups_files_newick( struct Composante my_comp , struct DistanceMatrix distmat  ,FILE *f,char *lastring, FILE *f2, int html){
+void print_groups_files_newick( struct Composante my_comp , struct DistanceMatrix distmat  ,FILE *f,char *lastring, FILE *f2, int html,FILE *fres,char *ledir){
 
 
 	int i,j,k=0,taillenom=1;
 	char *nom=NULL,*bou;
 	char chiffre[15];
-	
+
 	nom=malloc(sizeof(char) *1);
 
 	for(i=0; i<my_comp.nc; i++){
-	
+
 		if (html)
-			fprintf(f,"<B>"); 
-			
+			fprintf(f,"<B>");
+
 		fprintf(f,"Group[ %d ] n: %d ;", i+1, my_comp.n_in_comp[i]);
-		
+
 		if (html)
 			fprintf(f,"</B>");
-		
+
 		fprintf(f,"id:" );
-	
-		
+
+
 		for(j=0; j< my_comp.n_in_comp[i]; j++)
 		{
-	
+
 				if (strlen(distmat.names[my_comp.comp[i][j]]) >taillenom)
 					{
 					taillenom=strlen(distmat.names[my_comp.comp[i][j]]);
 			//		printf("-->realloc %d-%d <BR>\n",i,j);
 					nom=realloc(nom, sizeof(char)*(taillenom+3));
 					}
-			sprintf(nom,"%s",distmat.names[my_comp.comp[i][j]]);
-
+			//SOFIZ sprintf(nom,"%s",distmat.names[my_comp.comp[i][j]]);
+			strcpy(nom,distmat.names[my_comp.comp[i][j]]);
+			//printf("-->%s\n%s\n\n",nom,lastring);
 			fprintf(f," %s", distmat.names[my_comp.comp[i][j]]);
 //			printf("*****NOM:%d-%d %s<BR>\n",i,j,nom,strlen(nom));
 			bou= extract_posit_mot_2( lastring , nom );
-		
+
 			if (bou==NULL)   /* should never arrives */
 			{
-				printf("%s not found in\n%s \n",nom,lastring);
-				html_error(255);
+				fprintf(fres,"print_groups_files_newick %s not found in\n%s \n",nom,lastring);
+				html_error(fres,255);
+				fclose(fres);exit_properly(ledir);
 			}
 /*			else
 			if (strlen(bou)<= strlen(nom)+1)
@@ -1165,19 +1320,19 @@ void print_groups_files_newick( struct Composante my_comp , struct DistanceMatri
 				printf("UNEXPECTED PROBLEM<BR>");
 				html_error(255);
 			}*/
-//				bou+=strlen(nom)+1;	
-				bou+=strlen(nom)+1;	
-			
+//				bou+=strlen(nom)+1;
+				bou+=strlen(nom)+1;
+
 			sprintf(chiffre,"%d",i+1);
 				*bou++='_';
-		
+
 			*bou++='g';
 			*bou++='r';
 			*bou++='o';
 			*bou++='u';
 			*bou++='p';
 			*bou++=' ';
-			
+
 			for (k=0;k<strlen(chiffre);k++)
 				*bou++=chiffre[k];
 		}
@@ -1186,11 +1341,11 @@ void print_groups_files_newick( struct Composante my_comp , struct DistanceMatri
 			fprintf(f,"<BR>\n");
 		else
 			fprintf(f,"\n");
-	
+
 	}
 
 	fprintf(f2,"%s\n",lastring);
-	fclose(f2); 
+	fclose(f2);
 	if (nom)
 		free(nom);
 }
@@ -1201,32 +1356,32 @@ void print_groups_files_No_newick( struct Composante my_comp , struct DistanceMa
 	int i,j,k=0,taillenom=1;
 	char *nom=NULL,*bou;
 	char chiffre[15];
-	
+
 	nom=malloc(sizeof(char) *1);
 
 	for(i=0; i<my_comp.nc; i++){
-				
+
 		fprintf(f,"Group[ %d ] n: %d ;", i+1, my_comp.n_in_comp[i]);
-		
+
 		fprintf(f,"id:" );
-	
-		
+
+
 		for(j=0; j< my_comp.n_in_comp[i]; j++)
 		{
-	
+
 				if (strlen(distmat.names[my_comp.comp[i][j]]) >taillenom)
 					{
 					taillenom=strlen(distmat.names[my_comp.comp[i][j]]);
 			//		printf("-->realloc %d-%d <BR>\n",i,j);
 					nom=realloc(nom, sizeof(char)*(taillenom+3));
 					}
-			sprintf(nom,"%s",distmat.names[my_comp.comp[i][j]]);
-
+			//SOFIZ sprintf(nom,"%s",distmat.names[my_comp.comp[i][j]]);
+strcpy(nom,distmat.names[my_comp.comp[i][j]]);
 			fprintf(f," %s", distmat.names[my_comp.comp[i][j]]);
 
 		}
 			fprintf(f,"\n");
-	
+
 	}
 	if (nom)
 		free(nom);
@@ -1252,19 +1407,59 @@ void clean_str(char *ch)
 
 
 
+void print_groups_newick( struct Composante my_comp , struct DistanceMatrix distmat  ,char *lastring, FILE *f2,FILE *fres,char *ledir){
+
+	// Not called anywhere, uses non-standard strcasestr
+	printf("print_groups_newick is commented out\n");
+	exit(1);
+
+/*
+	int i,j,k=0;
+	char nom[100],*bou;
+	char chiffre[10];
+//	printf("icxi %s \n",lastring);
+	for(i=0; i<my_comp.nc; i++){
+
+		for(j=0; j< my_comp.n_in_comp[i]; j++)
+			{
+			//SOFIZ sprintf(nom,"%s",distmat.names[my_comp.comp[i][j]]);
+			strcpy(nom,distmat.names[my_comp.comp[i][j]]);
+			bou=strcasestr(lastring,nom);
+
+			if (bou==NULL)//should never arrives
+				{fprintf(fres,"print_groups_newick: %s non trouvé ds \n%s \n",nom,lastring);html_error(fres,255);fclose(fres); exit_properly(ledir);}
+			bou+=strlen(nom)+1;
+			sprintf(chiffre,"%d",i+1);
+			*bou++='|';*bou++='g';*bou++='r';*bou++='o';*bou++='u';*bou++='p';*bou++=' ';
+			for (k=0;k<strlen(chiffre);k++)*bou++=chiffre[k];
+			}
+
+
+	}
+//		i=-1;
+//	while (lastring[++i]!='\0') //write a newick file without the spaces i've added before pb erase all spaces
+//		if (lastring[i]!=' ')
+//			fprintf(f2,"%c",lastring[i]);
+//	fprintf(f2,"\n");
+clean_str(lastring);
+fprintf(f2,"%s\n",lastring);
+*/
+
+}
+
 
 void print_distmat(  struct DistanceMatrix distmat  ){
 
 	int a,b;
 	printf("Distance Matrix:\n");
 	for(a=0; a<distmat.n; a++){
-	
+
 		printf("[%d]%.10s", a+1,distmat.names[a]);
-	
+
 		for(b=0; b<distmat.n; b++){
 			printf("  %f",distmat.dist[a][b]);
 		}
-		
+
 		printf("<BR>\n");
 
 	}
@@ -1286,7 +1481,7 @@ void fprint_distmat(  struct DistanceMatrix distmat ,FILE *f ){
 			if (k==8)
 				{k=0;fprintf(f,"\n");}
 			}
-		k=0;	
+		k=0;
 		fprintf(f,"\n");
 
 	}
@@ -1297,7 +1492,7 @@ void fprint_distmat(  struct DistanceMatrix distmat ,FILE *f ){
 double GetInvar(FastaSeq *mesSeq, int nseq)
 {
 double v;
-int i,j,l,flag;	
+int i,j,l,flag;
 l=strlen(mesSeq[0]->length);
 for (i=0;i<l;i++)
 	{
@@ -1307,9 +1502,9 @@ for (i=0;i<l;i++)
 			if (mesSeq[0]->sequence[i]!=mesSeq[j]->sequence[i])
 				{flag=0;break;}
 	if (flag==1)
-		v=v+1;			
-	}	
-return(v/(double)l)		
+		v=v+1;
+	}
+return(v/(double)l)
 }*/
 /*
 Take off sites with gaps
@@ -1317,45 +1512,45 @@ Take off sites with gaps
 */
 
 /*
-take a fasta file as input and compute distance as method(seq1,seq2,length) 
+take a fasta file as input and compute distance as method(seq1,seq2,length)
 */
-struct DistanceMatrix GetDistMat (int nseq, struct FastaSeq *mesSeqs, int method,float ts_tv)
+struct DistanceMatrix GetDistMat (int nseq, struct FastaSeq *mesSeqs, int method,float ts_tv,FILE *fres,char *ledir)
 {
-	
+
 	struct DistanceMatrix my_mat;                  /* store distance matrix, names and matrix size */
-	void (*distance) (struct FastaSeq *,int ,struct DistanceMatrix )=NULL;      /* pointeur de fonction */;
+	void (*distance) (struct FastaSeq *,int ,struct DistanceMatrix ,FILE *,char *)=NULL;      /* pointeur de fonction */;
 	int a;
 	int length;
 
 	length=strlen(mesSeqs[0].seq);
 
 	switch(method){
-	
+
 		case 0:
 			distance=distanceK80;
-			printf("Kimura distance\n");	
+			printf("Kimura distance\n");
 			break;
 
 		case 1:
 			distance=distanceJC69;
-			printf("Jukes Cantor distance\n");	
+			printf("Jukes Cantor distance\n");
 			break;
 
 		case 2:
 			distance=distanceTN93;
 			break;
-		
+
 		case 3:
 			distance=distancesimple;
-			printf("Simple distance\n");	
+			printf("Simple distance\n");
 			break;
 	}
 
 	my_mat.names = (char **)malloc( (size_t) sizeof(char *)*nseq+1);
-	
+
 	my_mat.n=nseq;
 	my_mat.ratio_ts_tv=ts_tv;
-	
+
 
 	if( ! my_mat.names )printf("read_distmat: cannot allocate my_mat.names, bye<BR>"), exit(4);
 
@@ -1365,7 +1560,7 @@ struct DistanceMatrix GetDistMat (int nseq, struct FastaSeq *mesSeqs, int method
 		if( ! my_mat.names[a] )
 			printf( "read_distmat: cannot allocate my_mat.names[%d], bye<BR>",a), exit(4);
 	strcpy(my_mat.names[a],mesSeqs[a].name);
-	
+
 
 	}
 
@@ -1380,7 +1575,7 @@ struct DistanceMatrix GetDistMat (int nseq, struct FastaSeq *mesSeqs, int method
 	}
 //printf("calculating distances %d seq\n<BR>",my_mat.n);
 
-	distance(mesSeqs,length,my_mat);
+	distance(mesSeqs,length,my_mat,fres,ledir);
 //print_distmat(my_mat);
 	return my_mat;
 
@@ -1409,21 +1604,21 @@ double *matrix2list( struct DistanceMatrix  distmat, char *mask, long *Nval ){
 
 	int i,j;
 	int nseq=0;
-	
+
 	double *Pairs;
-	
+
 	for(i=0;i<distmat.n;i++)
-		nseq+=mask[i];          
+		nseq+=mask[i];
 
 //printf("here is it ok %d?\n",nseq);
 //print_distmat(distmat);
 	Pairs = (double *)malloc( ((nseq*(nseq-1))/ 2 )*sizeof(double) );
 	if(!Pairs)fprintf(stderr, "matrix2list: cannot allocate Pairs, bye\n"), exit(4);
-	
+
 
 	*Nval=0;
 	for(i=0; i<distmat.n;i++){
-	
+
 		if( mask[i] == 0 )
 			continue;
 		if (verbose) printf("%d non masque\n",i);
@@ -1431,9 +1626,9 @@ double *matrix2list( struct DistanceMatrix  distmat, char *mask, long *Nval ){
 			{
 			if( mask[j] )
 				Pairs[ (*Nval)++ ] = distmat.dist[i][j];
-				
-			}	
-	
+
+			}
+
 	}
 
 
@@ -1450,27 +1645,27 @@ double *matrix2list( struct DistanceMatrix  distmat, char *mask, long *Nval ){
 *********************/
 
 /*
-	recursive function that add a node to the current composante and 
+	recursive function that add a node to the current composante and
 	check for next ones in the composante
 */
 void setcomp( int node, int compid, int * node_compid, struct DistanceMatrix matrix, double max_dist, char *mask){
 
 
 	int j;
-	
+
 	node_compid[node] = compid;                                                    /* the node is added to the composante */
 
 	for( j=0; j<matrix.n; j++  ){
 
 		if( mask[j] == 0 )
 			continue;
-	
+
 		if( matrix.dist[node][j] < max_dist ){
 
 			if( node_compid[j] == 0 )
 				setcomp( j, compid, node_compid, matrix, max_dist, mask);     /* add an undiscovered connected node */
 			else{
-			
+
 				if( node_compid[j] != compid ){
 					printf("setcomp: really strange ??? This should not happen %d in comp %d && %d in comp %d\n", node, compid, j , node_compid[j] );
 					exit(1);
@@ -1495,7 +1690,7 @@ struct Composante compute_node_compid(  struct DistanceMatrix matrix, double max
 	struct Composante my_comp;      /*  a structure that store most of composante features --see above-- */
 	int i;
 
-	
+
 	my_comp.nm = 0;
 	for(i=0; i<matrix.n; i++)
 		if( mask[i] == 0 )
@@ -1512,45 +1707,45 @@ struct Composante compute_node_compid(  struct DistanceMatrix matrix, double max
 
 
 	for( row=0; row < matrix.n ; row++){
-	
+
 		if(my_comp.node_compid[row] > 0 || mask[row] == 0)                                          /* if stored already, just skip it */
 			continue;
-		
+
 		setcomp( row, my_comp.nc, my_comp.node_compid, matrix, max_dist, mask );        /* otherwise create a new composante and propgate to all connections */
-		
+
 		my_comp.nc++;
 
 	}
-	
+
 
 	/*
 		Reset id numbers from [1,nc] to [0, nc[
 		nb: masked entries will have the -1 composant value
 	*/
-	
+
 	my_comp.nc--;
 
 	for( i=0 ; i < matrix.n ; i++ )
 		my_comp.node_compid[i]--;
-	
+
 	return my_comp;
 }
 
 /*
-	From a list where each node has a composante, 
+	From a list where each node has a composante,
 	generate the composante list
 */
 struct Composante extract_composante(  struct DistanceMatrix matrix, double max_dist, char *mask ){
 
 	int i;
 	struct Composante my_comp;
-		
-	
+
+
 	/*
 		First make an array where each node as a comp_id (from 0 to nc; masked ones are -1)
 	*/
 	my_comp = compute_node_compid(  matrix, max_dist, mask );
-	
+
 
 
 	/*
@@ -1561,26 +1756,26 @@ struct Composante extract_composante(  struct DistanceMatrix matrix, double max_
 
 	my_comp.comp = (int **)malloc( (size_t)my_comp.nc * (size_t)sizeof(int*) );
 	if(!my_comp.comp)fprintf(stderr, "extract_composante: cannot allocate my_comp.comp, bye\n"), exit(2);
-	
-	
+
+
 	/*
 		Count how many nodes in each composante for
 		for memory allocation optimization
 	*/
 	for( i=0;  i< matrix.n ;  i++ ){
-	
+
 		if( my_comp.node_compid[i] == -1 )continue;         /* a masked node */
-		
+
 		my_comp.n_in_comp[ my_comp.node_compid[i] ]++;
 
 	}
-	
-	for( i=0;  i<my_comp.nc;  i++ ){		
+
+	for( i=0;  i<my_comp.nc;  i++ ){
 		my_comp.comp[i] = (int *)malloc(  sizeof(int)*my_comp.n_in_comp[ i ] );
 		if( !my_comp.comp[i] )fprintf(stderr, "compute_composante: cannot allocate my_comp.comp[%d], bye\n", i), exit(2);
 	}
-	
-	
+
+
 	/*
 		reset the array to 0
 	*/
@@ -1593,13 +1788,13 @@ struct Composante extract_composante(  struct DistanceMatrix matrix, double max_
 		and re-count how many nodes in each composante
 	*/
 	for(i=0; i<matrix.n; i++ ){
-	
+
 		if( my_comp.node_compid[i] == -1)continue;         /* a masked entry */
-	
+
 		my_comp.comp[ my_comp.node_compid[i] ][ my_comp.n_in_comp[ my_comp.node_compid[i] ] ] = i;
 		my_comp.n_in_comp[ my_comp.node_compid[i] ] ++;
 	}
-	
+
 
 	return my_comp;
 }
@@ -1609,14 +1804,14 @@ struct Composante extract_composante(  struct DistanceMatrix matrix, double max_
 void update_composante(  struct Composante *main_comp, int id, struct Composante sub_comp ){
 
 	int i;
-	
+
 	/*
 		first a small check
 	*/
 	if( main_comp->n_in_comp[id] != sub_comp.nn )
 		fprintf(stderr, "update_composante: make sure the size of the composante to split equals the number of nodes in the splitted one\n"), exit(1);
-	
-	
+
+
 	/*
 		Extend memory
 	*/
@@ -1624,45 +1819,45 @@ void update_composante(  struct Composante *main_comp, int id, struct Composante
 	main_comp->comp = (int **)realloc( (void *) main_comp->comp, (size_t) (main_comp->nc+sub_comp.nc-1)*sizeof(int *)  );
 	if( !main_comp->n_in_comp || !main_comp->n_in_comp )
 		fprintf(stderr, "update_composante: cannot reallocate main_comp->n_in_comp or main_comp->n_in_comp, bye\n"), exit(3);
-	
+
 
 	/*
-		UPDATE COMP_ID 
+		UPDATE COMP_ID
 		in sub_comp, -1:ignore, 0: leave it in the main_comp (ie. ignore), 1+, append it to the end of main_comp
 	*/
-	
+
 	for(i =0; i < main_comp->nn+main_comp->nm ; i++){
 
 		if( sub_comp.node_compid[ i ] > 0 )
 			main_comp->node_compid[ i ] = main_comp->nc + sub_comp.node_compid[ i ];
 	}
-	
-	
-	
-	/* UPDATE N_IN_COMP */	
-	
+
+
+
+	/* UPDATE N_IN_COMP */
+
 	main_comp->n_in_comp[ id ] = sub_comp.n_in_comp[ 0 ];                      /* the first sub one replace the original comp */
-	
+
 	for(i =1; i < sub_comp.nc ; i++){
 		main_comp->n_in_comp[ main_comp->nc + i-1 ] = sub_comp.n_in_comp[ i ];  /* the others are append to the main_com */
 	}
-	
-	
-	/* UPDATE COMP */	
-	
+
+
+	/* UPDATE COMP */
+
 	main_comp->comp[ id ] = sub_comp.comp[ 0 ];
 	sub_comp.comp[ 0 ] = NULL;
-	
+
 	for(i =1; i < sub_comp.nc ; i++){
-		
+
 		main_comp->comp[ main_comp->nc+i-1 ] = sub_comp.comp[ i ];  /* the others are append to the main_com */
 		sub_comp.comp[ i ] = NULL;
-		
+
 	}
 
 
 	/* UPDATE NC */
-	
+
 	main_comp->nc = main_comp->nc + sub_comp.nc - 1;
 
 }
@@ -1685,12 +1880,12 @@ void reset_composante( struct Composante * c ){
 	c->nc = 0;
 	c->nn = 0;
 	c->nm = 0;
-	
+
 	c->node_compid = NULL;
 	c->n_in_comp   = NULL;
 	c->comp        = NULL;
 
-	
+
 }
 
 
@@ -1712,13 +1907,35 @@ long min_ws( long nval ){
 /*check that names are uniques in alignment*/
 int check_names(struct FastaSeq *mesSeq, int nbseq)
 {
-int i,j;
+int i,j,c;
 for (i=0;i<nbseq-1;i++)
 	for (j=i+1;j<nbseq;j++)
+	{
 		if (strcmp(mesSeq[i].name,mesSeq[j].name)==0)
 			{
 			printf("seq %d: %s and seq %d: %s have same name\n",i+1,mesSeq[i].name,j+1,mesSeq[j].name);
 			return(0);
 			}
+
+		if (strstr(mesSeq[i].name,mesSeq[j].name)!=NULL) //name j included in i
+			{
+			c=strlen(mesSeq[j].name);
+			if (mesSeq[i].name[c]==' ')
+				{
+				printf("seq %d: %s has a name included in seq %d: %s . ABGD can't deal with that; change at least one of the names\n",i+1,mesSeq[i].name,j+1,mesSeq[j].name);
+				return(0);
+				}
+			}
+
+		if  (strstr(mesSeq[j].name,mesSeq[i].name)!=NULL)
+			{
+			c=strlen(mesSeq[i].name);
+			if (mesSeq[j].name[c]==' ')
+				{
+				printf("seq %d: %s has a name included in seq %d: %s . ABGD can't deal with that; change at least one of the names\n\n",i+1,mesSeq[i].name,j+1,mesSeq[j].name);
+				return(0);
+				}
+			}
+	}
 return(1);
 }

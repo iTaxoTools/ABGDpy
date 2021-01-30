@@ -30,7 +30,6 @@ The following keys are checked in the provided dictionary: (TBA)
 - verbose:	verbose mode (outputs a lot of values)
 - simple:	option for only groups
 
-
 ## Warning
 
 This module often uses exit() to abort in case of error, shutting down the whole Python process that called it.
@@ -45,15 +44,14 @@ The original ABGD code was also slightly altered for the cross-platform wrapper 
 
 - Create `main_abgd.h`: header file exposing `main_abgd.c` functions, used by `abgdmodule.c/abgd_main`
 - Remove header includes: `strings.h` `unistd.h` `dirent.h`: linux-only libraries
-- Remove function: `main_abgd.c/main`: functionality copied to `abgdmodule.c/abgd_main`
-- Remove function: `abgdCore.c/print_groups_newick`: used non-standard `strcasestr`, function not called anywhere
+- Disable function: `abgdCore.c/print_groups_newick`: used non-standard `strcasestr`, function not called anywhere
 - Edit function: `main_abgd.c/readMatrixMega`: used non-standard `strcasestr`: replaced with `toupper` and `strstr`
-- Add function: `abgdmodule.c/abgd_main`: copied from `main_abgd.c/main` with the following changes:
+- Remove function: `main_abgd.c/main`: functionality copied to `abgdmodule.c/abgd_main` with the following changes:
 -- Accept a Python dictionary object as a single argument
 -- Change variable `dirfiles` into a `const char`
 -- Replace some `exit(1)` occurences with Python exceptions
 -- Fetch and use module global `separator` for all pathnames
--- For more: diff files
+- And more
 
 
 ## Original README file
