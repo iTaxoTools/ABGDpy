@@ -1103,7 +1103,7 @@ void print_groups_files( struct Composante my_comp , struct DistanceMatrix distm
 
 //see pb with user dir for abgd CL
 
-void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char *workdir,char *meth,float slope,double *bcode)
+void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char separator,char *meth,float slope,double *bcode)
 {
 	int i,j,k;
 	FILE *f;
@@ -1115,10 +1115,10 @@ void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,cha
 	for (j=0;j<2;j++)
 	{
 
-		sprintf(lename,"%s%s/%s",workdir,ledir,names[j]);
+		sprintf(lename,"%s%c%s",ledir,separator,names[j]);
 
 
-		fprintf(stderr,"PARTFILE: %s******\n",lename);
+		fprintf(stderr,"%s\n",lename);
 		f=fopen(lename,"w");
 		if (f==NULL) {fprintf(fres,"%s not opened",lename);fclose (fres);exit_properly(ledir);}
 		//printf("------>%s\n",lename);

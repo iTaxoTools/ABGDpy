@@ -8,6 +8,12 @@
         "type":     "bool",
         "default":  false
       },
+      "spart": {
+        "label":    "Generate Spart",
+        "doc":      "Generate Spart files.",
+        "type":     "bool",
+        "default":  true
+      },
       "simple": {
         "label":    "Generate Partitions",
         "doc":      "Generate partition files.",

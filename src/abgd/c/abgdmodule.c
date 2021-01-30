@@ -152,6 +152,7 @@ abgd_main(PyObject *self, PyObject *args) {
 	struct tm      *tm;
 	int ncomp_primary=0;
 	char buffer2[80];
+	int withspart=1;
 	Spart *myspar,*myspar2;
 	int **nb_subsets;
 	struct stat st;
@@ -241,6 +242,9 @@ char *bout;
 	if (parseItem(dict, "all", 'b', &withallfiles)) return NULL;
 	printf("> withallfiles = %i\n", withallfiles);
 
+	if (parseItem(dict, "spart", 'b', &withspart)) return NULL;
+	printf("> withspart = %i\n", withspart);
+
 	if (parseItem(dict, "verbose", 'b', &verbose)) return NULL;
 	printf("> verbose = %i\n", verbose);
 
@@ -249,8 +253,8 @@ char *bout;
 
 	//check that dirfiles ends by a '/' otherwise may have some pb
 
-	if (strrchr(file,'/'))
-		sprintf(dataFilename,"%s",strrchr(file,'/')+1);
+	if (strrchr(file,separator))
+		sprintf(dataFilename,"%s",strrchr(file,separator)+1);
 	else
 		sprintf(dataFilename,"%s",file);
 	if (strrchr(dataFilename,'.'))
@@ -447,12 +451,10 @@ if (stat(dirfiles, &stfile) == -1)
 			sprintf(file_name,"%s%c%s.partinit.%d.tree",dirfiles,separator,simplename,myD+1);
 			f2=fopen(file_name,"w");
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
-			mem_spart_files(comp , myspar,myD,nb_subsets,0,distmat.n,fres);
+
 			fclose(fout);
 			/* reseting newick string to original */
 			strcpy(newickString,newickStringOriginal);//make a copy because going to modify it in next function
-
-
 
 			}
 		else if(notreefile)
@@ -464,9 +466,10 @@ if (stat(dirfiles, &stfile) == -1)
 				printf("problem opening result file %s\n",file_name), exit(1);
 
 			print_groups_files(  comp ,  distmat ,  fout,0);
-			mem_spart_files(comp , myspar,myD,nb_subsets,0,distmat.n,fres);
 			fclose(fout);
 			}
+
+		if (withspart) mem_spart_files(comp,myspar,myD,nb_subsets,0,distmat.n,fres);
 
 	/*
 		Try to resplit each group using recursion startegy on already defined groups
@@ -567,7 +570,7 @@ if (stat(dirfiles, &stfile) == -1)
 			f2=fopen(file_name,"w");
 
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
-			mem_spart_files(comp ,  myspar2,myD,nb_subsets,1 ,distmat.n,fres);
+
 
 			fclose(fout);
 
@@ -586,10 +589,11 @@ if (stat(dirfiles, &stfile) == -1)
 				printf("problem opening result file %s\n",file_name), exit(1);
 
 		print_groups_files(  comp ,  distmat ,  fout,0);
-		mem_spart_files(comp ,  myspar2,myD,nb_subsets,1 ,distmat.n,fres);
 
 		fclose(fout);
 		}
+
+		if (withspart) mem_spart_files(comp,myspar2,myD,nb_subsets,1,distmat.n,fres);
 
 
 		mySpecies[myD]=comp.nc;
@@ -628,11 +632,6 @@ if (stat(dirfiles, &stfile) == -1)
 			printf("Description of %d newick trees in from init/recursives partition:\n",myD*2);
 			for (c=0;c<myD;c++)
 				printf("%s%c%s.[partinit/part].%d.tree\n",dirfiles,separator,simplename,c+1);
-			//printf("Spart files: Spart.file Spart_rec.file\n");
-			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
-			printf("************%d<%d %d\n",myD-1,nbStepsABGD,nbreal);
-
-			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,buffer2,fres,"",meth,minSlopeIncrease,bcod);
 			}
 		else
 		if (notreefile)
@@ -644,6 +643,12 @@ if (stat(dirfiles, &stfile) == -1)
 
 			}
 
+		if (withspart)
+			{
+			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
+			printf("Spart files (%d real steps)\n",nbreal);
+			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,buffer2,fres,separator,meth,minSlopeIncrease,bcod);
+			}
 
 		printf("---------------------------------\n");
   		}

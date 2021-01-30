@@ -83,7 +83,7 @@ void distanceJC69 (struct FastaSeq *,int l,struct  DistanceMatrix  mymat,FILE *f
 
 int comparaison(const void *v1, const void *v2);
 
-void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char *workdir,char *meth,float slope,double *bcode);
+void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char separator,char *meth,float slope,double *bcode);
 
 //void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres, char *w);
 void exit_properly(char *ledir);
