@@ -1,16 +1,15 @@
 # ABGDpy
 
-A Python Wrapper for ABGD:
+Primary species delimitation using automatic barcode gap discovery.
 
-<https://bioinfo.mnhn.fr/abi/public/abgd/>
+This is a Python wrapper for ABGD: <https://bioinfo.mnhn.fr/abi/public/abgd/>
 
-(UNDER DEVELOPMENT)
 
 ## Quick start
 
-###To launch the GUI without installing:
+### To launch the GUI without installing:
 
-The first time you use the program, you must build the ABGD module:
+Before the first time you use the program, you must build the ABGD module:
 ```
 $ python setup.py build_ext --inplace
 ```
@@ -40,7 +39,7 @@ Run the GUI:
 $ abgdpy-qt
 ```
 
-Command line tool:
+Simple command line tool:
 
 ```
 $ abgdpy tests/test.fas
@@ -52,7 +51,7 @@ You must first compile the ABGD module,
 then use PyInstaller on the launcher **spec** file:
 ```
 $ python setup.py build_ext --inplace
-$ pyinstaller --icon=abgd.ico launcher.spec
+$ pyinstaller launcher.spec
 ```
 
 ## Module
@@ -91,9 +90,13 @@ Save them in a new directory:
 >>> a.fetch('./my_results')
 ```
 
-## Acknowledgements [TBA]
+## Acknowledgements
 
-ABGD: <https://bioinfo.mnhn.fr/abi/public/abgd/>
-Original C code by G. Achaz
-Code update by Sophie Brouillet
-BIONJ by Olivier Gascuel
+N Puillandre, A Lambert, S Brouillet and G Achaz ABGD, [Automatic Barcode Gap Discovery for primary species delimitation][paper], Mol Ecol. 2011.
+
+
+- Original C code by G. Achaz
+- Code update by Sophie Brouillet
+- BIONJ by Olivier Gascuel
+
+[paper]: https://pubmed.ncbi.nlm.nih.gov/21883587/
