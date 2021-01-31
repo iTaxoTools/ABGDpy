@@ -3,6 +3,7 @@ from multiprocessing import Process
 import importlib.resources
 import tempfile
 import shutil
+from datetime import datetime
 
 from . import abgdc
 from . import param
@@ -24,6 +25,7 @@ class BarcodeAnalysis():
         self.file = file
         self.target = None
         self.results = None
+        self.time_format = '%x - %I:%M%p'
         with importlib.resources.open_text(__package__, 'params.json') as data:
             self.param = param.ParamList(data)
 
@@ -42,6 +44,7 @@ class BarcodeAnalysis():
         """
         kwargs = self.param.as_dictionary()
         kwargs['file'] = self.file
+        kwargs['time'] = datetime.now().strftime(self.time_format)
         if self.target is not None:
             kwargs['out'] = self.target
         print(kwargs)
