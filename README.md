@@ -7,26 +7,6 @@ This is a Python wrapper for ABGD: <https://bioinfo.mnhn.fr/abi/public/abgd/>
 
 ## Quick start
 
-### To launch the GUI without installing:
-
-Before the first time you use the program, you must build the ABGD module:
-```
-$ python setup.py build_ext --inplace
-```
-*(you will need a C compiler)*
-
-Launch the GUI:
-```
-$ python launcher.py
-```
-
-You may need to install the required libraries first:
-```
-$ pip install -r requirements.txt
-```
-
-## Installation
-
 Install using pip:
 
 ```
@@ -44,6 +24,23 @@ Simple command line tool:
 ```
 $ abgdpy tests/test.fas
 ```
+
+## Launch without installing
+
+Before the first time you use the program, you must install required modules, build the ABGD core and auto-compile the Qt resource files:
+```
+$ pip install -r requirements.txt
+$ python setup.py build_ext --inplace
+$ python setup.py build_qt
+```
+*(you will need a C compiler)*
+
+You can now launch the GUI:
+```
+$ python launcher.py
+```
+
+## Installation
 
 ## Packaging
 

@@ -1,6 +1,7 @@
 # general things to ignore
 build/
 dist/
+.eggs/
 *.egg-info/
 *.egg
 *.py[cod]
@@ -11,6 +12,9 @@ __pycache__/
 # due to using tox and pytest
 .tox
 .cache
+
+# qt auto-compiled resources
+src/abgd/qt/icons.py
 
 # accidental test files
 test.abgd.svg

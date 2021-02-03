@@ -6,13 +6,37 @@ https://github.com/pypa/sampleproject
 """
 
 # Always prefer setuptools over distutils
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages, Extension, Command
+from setuptools.command.build_py import build_py as _build_py
 import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
 
-# Get the long description from the README file
-long_description = (here / 'README.md').read_text(encoding='utf-8')
+class CommandQtAutoCompile(Command):
+    """Custom command for auto-compiling Qt resource files"""
+    description = 'run pyqt5ac on all resource files'
+    user_options = []
+    def initialize_options(self):
+        """virtual overload"""
+        pass
+    def finalize_options(self):
+        """virtual overload"""
+        pass
+    def run(self):
+        """build_qt"""
+        try:
+            import pyqt5ac
+            pyqt5ac.main(ioPaths=[
+                [str(here/'src/abgd/qt/*.qrc'), '%%DIRNAME%%/%%FILENAME%%.py'],
+                ])
+        except ModuleNotFoundError as exception:
+            raise ModuleNotFoundError('Missing Qt auto-compiler, please try: pip install pyqt5ac')
+
+class build_py(_build_py):
+    """Overrides setuptools build to autocompile first"""
+    def run(self):
+        self.run_command('build_qt')
+        _build_py.run(self)
 
 abgdmodule = Extension('abgd.abgdc',
                     include_dirs = ['src/abgd/c'],
@@ -23,34 +47,18 @@ abgdmodule = Extension('abgd.abgdc',
                         'src/abgd/c/main_abgd.c',
                         ])
 
-# Arguments marked as "Required" below must be included for upload to PyPI.
-# Fields marked as "Optional" may be commented out.
+# Get the long description from the README file
+long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
-    # This is the name of your project. The first time you publish this
-    # package, this name will be registered for you. It will determine how
-    # users can install this project, e.g.:
-    #
-    # $ pip install sampleproject
-    #
-    # And where it will live on PyPI: https://pypi.org/project/sampleproject/
-    #
-    # There are some restrictions on what makes a valid project name
-    # specification here:
-    # https://packaging.python.org/specifications/core-metadata/#name
-    name='abgdpy',  # Required
 
-    # Versions should comply with PEP 440:
-    # https://www.python.org/dev/peps/pep-0440/
-    #
-    # For a discussion on single-sourcing the version across setup.py and the
-    # project code, see
-    # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.1',  # Required
+    # This is the name of your project
+    name='abgdpy',
 
-    # This is a one-line description or tagline of what your project does. This
-    # corresponds to the "Summary" metadata field:
-    # https://packaging.python.org/specifications/core-metadata/#summary
+    # Versions should comply with PEP 440
+    version='0.0.1',
+
+    # This is a one-line description or tagline of what your project does
     description='A Python wrapper for ABGD',  # Optional
 
     # This is an optional longer description of your project that represents
@@ -142,7 +150,6 @@ setup(
 
     # Extension module
     ext_modules = [abgdmodule],
-    # ext_modules = [module1, abgdmodule],
 
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
@@ -163,13 +170,14 @@ setup(
     # syntax, for example:
     #
     #   $ pip install sampleproject[dev]
+    #   $ pip install -e ".[dev]"
     #
     # Similar to `install_requires` above, these must be valid existing
     # projects.
-    # extras_require={  # Optional
-    #     'dev': ['check-manifest'],
-    #     'test': ['coverage'],
-    # },
+    extras_require={  # Optional
+        'dev': ['pyqt5ac'],
+        'gui': ['pyqt5'],
+    },
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.
@@ -198,6 +206,12 @@ setup(
             'abgdpy=abgd.run:main',
             'abgdpy-qt=abgd.qt.run:main',
         ],
+    },
+
+    # Custom options for setuptools
+    cmdclass = {
+        'build_qt': CommandQtAutoCompile,
+        'build_py': build_py
     },
 
     # List additional URLs that are relevant to your project as a dict.
