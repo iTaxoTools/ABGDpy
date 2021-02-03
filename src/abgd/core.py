@@ -23,6 +23,7 @@ class BarcodeAnalysis():
         """
         """
         self.file = file
+        self.useLogfile = False
         self.target = None
         self.results = None
         self.time_format = '%x - %I:%M%p'
@@ -44,6 +45,7 @@ class BarcodeAnalysis():
         """
         kwargs = self.param.as_dictionary()
         kwargs['file'] = self.file
+        kwargs['logfile'] = self.useLogfile
         kwargs['time'] = datetime.now().strftime(self.time_format)
         if self.target is not None:
             kwargs['out'] = self.target

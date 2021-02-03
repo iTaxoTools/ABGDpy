@@ -132,7 +132,7 @@ class Header(QtWidgets.QFrame):
         self.toolbar.setToolButtonStyle(
             QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
-        self.toolbar.actionTriggered.connect(lambda x: print(x))
+        # self.toolbar.actionTriggered.connect(lambda x: print(x))
 
         left = QtWidgets.QGridLayout()
         left.addWidget(self.labelLogoTool, 0, 0, 2, 1)
@@ -506,7 +506,7 @@ class Main(QtWidgets.QDialog):
             self.line.file.setText(file)
             self.analysis.file = absolute
             self.folder.clear()
-            print(file)
+            # print(file)
         transition.onTransition = onTransition
         transition.setTargetState(self.state['idle_open'])
         self.state['idle'].addTransition(transition)
@@ -638,33 +638,34 @@ class Main(QtWidgets.QDialog):
             self.paramWidget.applyParams()
             self._temp = tempfile.TemporaryDirectory(prefix='abgd_')
             self.analysis.target = self._temp.name
-            print('RUN', self.analysis.target)
+            # print('RUN', self.analysis.target)
         except Exception as exception:
             self.fail(exception)
             return
 
         def done(result):
-            print('DONE', result)
+            # print('DONE', result)
             self.temp = self._temp
             self.analysis.results = result
             self.machine.postEvent(utility.NamedEvent('DONE', True))
 
         def fail(exception):
-            print('FAIL', exception)
+            # print('FAIL', exception)
             self.fail(exception)
             self.machine.postEvent(utility.NamedEvent('FAIL', exception))
 
         self.launcher = utility.UProcess(self.workRun)
         self.launcher.done.connect(done)
         self.launcher.fail.connect(fail)
-        self.launcher.setLogger(logging.getLogger())
+        # self.launcher.setLogger(logging.getLogger())
         self.launcher.start()
         self.machine.postEvent(utility.NamedEvent('RUN'))
 
     def workRun(self):
         """Runs on the UProcess, defined here for pickability"""
-        print('WORK', self.analysis.file)
-        print('WORK', self.analysis.target)
+        # print('WORK', self.analysis.file)
+        # print('WORK', self.analysis.target)
+        self.analysis.useLogfile = True
         self.analysis.run()
         # time.sleep(3)
         return self.analysis.results
@@ -695,7 +696,8 @@ class Main(QtWidgets.QDialog):
             with open(file) as input:
                 while True:
                     line = input.readline()
-                    self.preview.appendPlainText(line)
+                    # append adds \n so make sure we dont change line twice
+                    self.preview.appendPlainText(line[:-1])
                     if not line:
                         break
             self.preview.moveCursor(QtGui.QTextCursor.Start)

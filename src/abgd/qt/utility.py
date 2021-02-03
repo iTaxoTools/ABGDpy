@@ -7,6 +7,8 @@ import PyQt5.QtGui as QtGui
 import logging
 import sys, os, io
 import multiprocessing
+import ctypes
+import threading
 
 from . import utility
 
@@ -95,7 +97,7 @@ class PipeIO(io.IOBase):
     def write(self, text):
         if not self.writable():
             raise io.UnsupportedOperation('not writable')
-        temp = self.buffer + text
+        temp = str(self.buffer) + str(text)
         self.buffer = ''
         for line in temp.splitlines(True):
             if line[-1] == '\n':
@@ -287,6 +289,7 @@ class UProcess(QtCore.QThread):
         inp = PipeIO(self.pipeIn, 'r')
 
         # import sys
+        # sys.stdout.close()
         sys.stdout = out
         sys.stderr = err
         sys.stdin = inp

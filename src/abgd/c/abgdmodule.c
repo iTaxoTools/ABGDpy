@@ -155,6 +155,8 @@ abgd_main(PyObject *self, PyObject *args) {
 	// char buffer2[80];
 	const char *timeSig = NULL;
 	const char *timeSig_default = "?";
+	int withlogfile=0;
+	int stdout_bak, stderr_bak;
 	int withspart=1;
 	Spart *myspar,*myspar2;
 	int **nb_subsets;
@@ -187,7 +189,6 @@ char *bout;
 		return NULL;
 	}
 	separator = separator_str[0];
-	printf("> separator = %c\n", separator);
 
 	// Accept a dictionary-like python object
 	if (!PyArg_ParseTuple(args, "O", &dict))
@@ -198,7 +199,6 @@ char *bout;
 	}
 
 	if (parseItem(dict, "file", 's', &file)) return NULL;
-	printf("> file = %s\n", file);
 
 	if (!file) {
 		PyErr_SetString(PyExc_KeyError, "abgd_main: Mandatory key: 'file'");
@@ -215,7 +215,25 @@ char *bout;
 
 	if (parseItem(dict, "out", 's', &dirfiles)) return NULL;
 	if (!dirfiles) dirfiles = dirfiles_default;
+
+	if (parseItem(dict, "logfile", 'b', &withlogfile)) return NULL;
+
+	if (withlogfile) {
+		sprintf(file_name,"%s%c%s.log.txt",dirfiles,separator,simplename);
+		printf("> Redirecting stdout/stderr to file: %s\n", file_name);
+		fflush(stdout);
+		fflush(stderr);
+		stdout_bak = dup(fileno(stdout));
+		stderr_bak = dup(fileno(stderr));
+		freopen(file_name,"w",stdout);
+		dup2(fileno(stdout), fileno(stderr));
+	}
+
+	// Print these here so they are redirected if needed
+	printf("> separator = %c\n", separator);
+	printf("> file = %s\n", file);
 	printf("> dirfiles = %s\n", dirfiles);
+	printf("> withlogfile = %i\n", withlogfile);
 
 	if (parseItem(dict, "time", 's', &timeSig)) return NULL;
 	if (!timeSig) timeSig = timeSig_default;
@@ -257,6 +275,8 @@ char *bout;
 	if (parseItem(dict, "simple", 'b', &notreefile)) return NULL;
 	printf("> notreefile = %i\n", notreefile);
 
+	printf("\n> Begin ABGD core:\n\n");
+
 	//check that dirfiles ends by a '/' otherwise may have some pb
 
 	if (strrchr(file,separator))
@@ -277,10 +297,6 @@ if (stat(dirfiles, &stfile) == -1)
 		if (verbose) fprintf(stderr," Running abgd in verbose mode...\n");
 	simplename = Built_OutfileName( file );
 //	printf("%s\n",simplename);
-
-	sprintf(file_name,"%s%c%s.log.txt",dirfiles,separator,simplename);
-	freopen (file_name,"w",stdout);
-	printf("### logfile = %s\n", file_name);
 
 	mySpecies=malloc(sizeof(int)*nbStepsABGD+1);
 	specInit=malloc(sizeof(int)*nbStepsABGD+1);
@@ -420,7 +436,7 @@ if (stat(dirfiles, &stfile) == -1)
 
 		if(my_abgd.Rank == NVal+0.5){
 
-			printf("Partition %d : found 1 group (prior maximal distance P= %f) **Stop here**\n",  myD+1, MaxDist);
+			printf("Partition %d : found 1 group (prior maximal distance P= %f) \n**Stop here**\n",  myD+1, MaxDist);
 			stop_at_once=1;
 			fflush(stdout);
 
@@ -618,7 +634,7 @@ if (stat(dirfiles, &stfile) == -1)
 		reset_composante( &comp);
 		free(ValArray);
 	}
- //printf("***************%d et nc=%d %d \n",myD,comp.nc,stop_at_once);
+ // fprintf(stderr,"***************%d et nc=%d %d \n",myD,comp.nc,stop_at_once);
 	if ((myD==1 && comp.nc<=1) || (myD==1 && stop_at_once==1))
 	   printf("Only one partition found with your data. Nothing to output. You should try to rerun with a lower X (< %f) **Stop here**<BR>\n", minSlopeIncrease);
 	else
@@ -628,11 +644,11 @@ if (stat(dirfiles, &stfile) == -1)
 		if(verbose) fprintf(stderr,"writing graphx file\n");
 		CreateGraphFiles(mySpecies, specInit,myDist, myD, ledir, meth, file_name);   /* go for a nice piece of draw */
 		if(verbose) fprintf(stderr,"writing graphx file done\n");
-		printf("---------------------------------\n");
-		printf("Results file are :\n");
-		printf("Graphic svg file sumarizing this abgd run: %s%c%s.abgd.svg\n",dirfiles,separator,simplename);
-		printf("Graphic distance histogram svg file : %s%c%s.disthist.svg\n",dirfiles,separator,simplename);
-		printf("Graphic rank distance svg file : %s%c%s.rank.svg\n",dirfiles,separator,simplename);
+		printf("\n---------------------------------\n");
+		printf("\nGraphic files (SVG):\n");
+		printf("Summary: %s%c%s.abgd.svg\n",dirfiles,separator,simplename);
+		printf("Distance histogram: %s%c%s.disthist.svg\n",dirfiles,separator,simplename);
+		printf("Rank distance: %s%c%s.rank.svg\n",dirfiles,separator,simplename);
 
 		if (withallfiles)
 			{
@@ -657,12 +673,23 @@ if (stat(dirfiles, &stfile) == -1)
 		if (withspart)
 			{
 			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
-			printf("Spart files (%d real steps)\n",nbreal);
+			printf("\nSpart files (%d real steps)\n",nbreal);
 			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,timeSig,fres,separator,meth,minSlopeIncrease,bcod);
 			}
 
-		printf("---------------------------------\n");
+		printf("\n---------------------------------\n");
   		}
+
+	if (withlogfile) {
+		fflush(stdout);
+		fflush(stderr);
+		dup2(stdout_bak, fileno(stdout));
+		dup2(stderr_bak, fileno(stderr));
+		close(stdout_bak);
+		close(stderr_bak);
+		printf("< Restored stdout/stderr\n");
+	}
+
 
 	free_distmat(  distmat );
 	if (stop_at_once==0 )

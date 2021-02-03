@@ -1115,7 +1115,7 @@ void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,cha
 		sprintf(lename,"%s%c%s",ledir,separator,names[j]);
 
 
-		fprintf(stderr,"%s\n",lename);
+		fprintf(stdout,"%s\n",lename);
 		f=fopen(lename,"w");
 		if (f==NULL) {fprintf(fres,"%s not opened",lename);fclose (fres);exit_properly(ledir);}
 		//printf("------>%s\n",lename);
