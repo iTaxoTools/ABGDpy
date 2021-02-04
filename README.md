@@ -4,6 +4,7 @@ Primary species delimitation using automatic barcode gap discovery.
 
 This is a Python wrapper for ABGD: <https://bioinfo.mnhn.fr/abi/public/abgd/>
 
+*(you will need a C compiler when building from source)*
 
 ## Quick start
 
@@ -33,20 +34,18 @@ $ pip install -r requirements.txt
 $ python setup.py build_ext --inplace
 $ python setup.py build_qt
 ```
-*(you will need a C compiler)*
 
 You can now launch the GUI:
 ```
 $ python launcher.py
 ```
 
-## Installation
-
 ## Packaging
 
 You must first compile the ABGD module,
 then use PyInstaller on the launcher **spec** file:
 ```
+$ pip install pyinstaller
 $ python setup.py build_ext --inplace
 $ pyinstaller launcher.spec
 ```
@@ -89,8 +88,9 @@ Save them in a new directory:
 
 ## Acknowledgements
 
-N Puillandre, A Lambert, S Brouillet and G Achaz ABGD, [Automatic Barcode Gap Discovery for primary species delimitation][paper], Mol Ecol. 2011.
-
+N Puillandre, A Lambert, S Brouillet and G Achaz ABGD,\
+[Automatic Barcode Gap Discovery for primary species delimitation][paper],\
+Mol Ecol. 2011.
 
 - Original C code by G. Achaz
 - Code update by Sophie Brouillet

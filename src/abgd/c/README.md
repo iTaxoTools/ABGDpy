@@ -8,8 +8,8 @@ Source code:	https://bioinfo.mnhn.fr/abi/public/abgd/last.tgz
 ## Usage example
 
 ```
-import _abgdc
-_abgdc.main({'file':'test.fas','all':True})
+import abgdc
+abgdc.main({'file':'test.fas','all':True})
 ```
 
 ## Arguments
@@ -39,7 +39,6 @@ It is also possible that allocated memory is not freed in such cases. For this r
 it is recommended to run _abgdc.main() on its own subprocess.
 To verify that no errors occured, check that the process exitcode is 0.
 
-
 ## Changes
 
 The original ABGD code was also slightly altered for the cross-platform wrapper to compile:
@@ -60,6 +59,7 @@ The original ABGD code was also slightly altered for the cross-platform wrapper 
 
 ## Original README file
 
+```
 ABGD command line: Brief Install and How to Description
 
 
@@ -167,3 +167,4 @@ default MEGA 4, formated as below
 
 This mega format is assumed  as soon as the "#mega" keyword is present on 1st line
 Some variations are tolerated in this latter format, but if you get an error you should try to stick to the one above.
+```
