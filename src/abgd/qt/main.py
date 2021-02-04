@@ -11,6 +11,7 @@ import logging
 import tempfile
 import time
 import shutil
+import pathlib
 
 from .. import core
 from ..param import qt as param_qt
@@ -48,32 +49,55 @@ class SquareImage(QtWidgets.QLabel):
         self.updateGeometry()
 
 
-class FolderView(QtWidgets.QTreeView):
-    """Show contents of a folder"""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setStyleSheet("QTreeView::item {padding: 2px;}")
-        self.setAnimated(False);
-        self.setIndentation(2);
-        self.setSortingEnabled(True);
-        self.header().hide()
+class ResultItem(QtWidgets.QListWidgetItem):
+    """
+    Model for an ABGD analysis result file.
+    Holds icon, label, tooltip, category and file location.
+    """
+    Type = QtWidgets.QListWidgetItem.UserType + 1
+    Icons = { None: QtGui.QIcon() }
 
+    def __init__(self, file, parent=None):
+        """Overloaded with new type"""
+        super().__init__(parent=parent, type=self.Type)
+        self.file = file
+        fileInfo = QtCore.QFileInfo(file)
+        suffix = fileInfo.suffix()
+        if not (suffix in self.Icons.keys()):
+            suffix = None
+        self.setIcon(self.Icons[suffix])
+        self.setText(fileInfo.baseName())
+
+class ResultView(QtWidgets.QListWidget):
+    """
+    Show each result file with icon and label.
+    Remember file type and path
+    """
     def open(self, folder):
-        """Update contents"""
-        fileInfo = QtCore.QFileInfo(folder)
-        absolute = fileInfo.absolutePath()
-        model = QtWidgets.QFileSystemModel()
-        model.setRootPath(absolute)
-        model.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
-        self.setModel(model)
-        self.setRootIndex(model.index(absolute))
-        self.sortByColumn(0, QtCore.Qt.AscendingOrder);
-        for column in range(1, model.columnCount()):
-            self.hideColumn(column)
+        """Refresh contents"""
+        dir = QtCore.QDir(folder)
+        dir.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
+        path = pathlib.Path(dir.path())
 
-    def clear(self):
-        """Clear contents"""
-        self.setModel(None)
+        # log files
+        dir.setNameFilters(['*log*'])
+        for file in dir.entryList():
+            ResultItem(str(path / file), self)
+
+        # graph files
+        dir.setNameFilters(['*svg*'])
+        for file in dir.entryList():
+            ResultItem(str(path / file), self)
+
+        # spart files
+        dir.setNameFilters(['*spart*'])
+        for file in dir.entryList():
+            ResultItem(str(path / file), self)
+
+        # partition files
+        dir.setNameFilters(['*txt*'])
+        for file in dir.entryList():
+            ResultItem(str(path / file), self)
 
 
 class Header(QtWidgets.QFrame):
@@ -305,6 +329,7 @@ class Main(QtWidgets.QDialog):
         self.draw()
         self.act()
         self.cog()
+        self.skin()
 
         if init is not None:
             self.machine.started.connect(init)
@@ -314,6 +339,17 @@ class Main(QtWidgets.QDialog):
 
     def __setstate__(self, state):
         (self.analysis,) = state
+
+    def skin(self):
+        """Configure widget appearance"""
+        ResultItem.Icons['txt'] = \
+            QtGui.QIcon(pixmapFromVector(':/icons/file-alt-regular.svg'))
+        ResultItem.Icons['svg'] = \
+            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
+        ResultItem.Icons['log'] = \
+            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
+        ResultItem.Icons['spart'] = \
+            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
 
     def draw(self):
         """Draw all widgets"""
@@ -362,8 +398,8 @@ class Main(QtWidgets.QDialog):
         self.pane['param'].body.addWidget(self.paramWidget)
         self.pane['param'].body.addStretch(1)
 
-        self.folder = FolderView()
-        self.folder.doubleClicked.connect(self.handlePreview)
+        self.folder = ResultView()
+        self.folder.itemActivated.connect(self.handlePreview)
 
         self.pane['list'] = Pane(self)
         self.pane['list'].title = 'Files'
@@ -398,6 +434,11 @@ class Main(QtWidgets.QDialog):
         self.splitter.setCollapsible(2,False)
         self.splitter.setStyleSheet("QSplitter::handle { height: 12px; }")
         self.splitter.setContentsMargins(4, 4, 4, 4)
+        self.splitter.setSizes([
+            self.width()/4,
+            self.width()/4,
+            self.width()/2,
+            ])
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.header)
@@ -581,10 +622,10 @@ class Main(QtWidgets.QDialog):
         dialog.setDirectory(dirOriginal)
         dialog.setFileMode(QtWidgets.QFileDialog.Directory)
         dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dialog.setOptions(
-            QtWidgets.QFileDialog.DontResolveSymlinks |
-            QtWidgets.QFileDialog.DontUseNativeDialog
-            )
+        # dialog.setOptions(
+        #     QtWidgets.QFileDialog.DontResolveSymlinks |
+        #     QtWidgets.QFileDialog.DontUseNativeDialog
+        #     )
 
         class ProxyModel(QtCore.QIdentityProxyModel):
             def flags(self, index):
@@ -683,17 +724,13 @@ class Main(QtWidgets.QDialog):
             self.launcher.quit()
             self.machine.postEvent(utility.NamedEvent('CANCEL'))
 
-    def handlePreview(self, event):
+    def handlePreview(self, item):
         """Called by file double-click"""
+        print('KLIK', item, item.file)
         try:
-            index = self.folder.selectedIndexes()
-            if len(index) <= 0:
-                return
-            data = self.folder.model().data(index[0])
-            self.pane['preview'].footer = data
-            file = QtCore.QDir.cleanPath(self.temp.name + QtCore.QDir.separator() + data)
+            self.pane['preview'].footer = pathlib.Path(item.file).name
             self.preview.clear()
-            with open(file) as input:
+            with open(item.file) as input:
                 while True:
                     line = input.readline()
                     # append adds \n so make sure we dont change line twice

@@ -1104,7 +1104,7 @@ void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,cha
 {
 	int i,j,k;
 	FILE *f;
-	char *names[2]={"Spart.file","Spart_rec.file"};
+	char *names[2]={"abgd.spart","abgd_rec.spart"};
 	char *type[2]={"init","rec"};
 	char lename[512];
 
