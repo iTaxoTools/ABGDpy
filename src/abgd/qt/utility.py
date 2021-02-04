@@ -338,7 +338,8 @@ class UProcess(QtCore.QThread):
         self.process.join()
         if self.process.exitcode != 0 and not self._quit:
             self.handleErr('Internal error!')
-            exception = RuntimeError('Internal error, please check logs.' + str(self._quit))
+            exception = RuntimeError('Subprocess exited with error status ' +
+                str(self.process.exitcode))
             self.fail.emit(exception)
         return
 

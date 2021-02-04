@@ -5,6 +5,7 @@ GUI for ABGD ...
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
+import PyQt5.QtSvg as QtSvg
 
 import sys
 import logging
@@ -78,10 +79,6 @@ class ResultView(QtWidgets.QListWidget):
         self.clear()
         path = pathlib.Path(folder)
 
-        # log files
-        for file in list(path.glob('*.log')):
-            ResultItem(str(path / file), self)
-
         # graph files
         for file in sorted(list(path.glob('*.svg'))):
             ResultItem(str(path / file), self)
@@ -96,6 +93,10 @@ class ResultView(QtWidgets.QListWidget):
 
         # tree files
         for file in sorted(list(path.glob('*.tree'))):
+            ResultItem(str(path / file), self)
+
+        # log files
+        for file in list(path.glob('*.log')):
             ResultItem(str(path / file), self)
 
 
@@ -411,13 +412,16 @@ class Main(QtWidgets.QDialog):
         self.pane['list'].body.setContentsMargins(5, 5, 5, 5)
         # self.pane['list'].body.addStretch(1)
 
-        self.preview = QtWidgets.QPlainTextEdit()
+        self.preview = QtWidgets.QTextEdit()
         self.preview.setFont(
             QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
         self.preview.setReadOnly(True)
 
+        self.graph = QtSvg.QSvgWidget()
+
         self.stack = QtWidgets.QStackedLayout()
         self.stack.addWidget(self.preview)
+        self.stack.addWidget(self.graph)
 
         self.pane['preview'] = Pane(self)
         self.pane['preview'].title = 'Preview'
@@ -550,7 +554,7 @@ class Main(QtWidgets.QDialog):
             self.line.file.setText(file)
             self.analysis.file = absolute
             self.folder.clear()
-            # print(file)
+            self.preview.clear()
         transition.onTransition = onTransition
         transition.setTargetState(self.state['idle_open'])
         self.state['idle'].addTransition(transition)
@@ -562,6 +566,8 @@ class Main(QtWidgets.QDialog):
         transition = utility.NamedTransition('DONE')
         def onTransition(event):
             self.folder.open(self.temp.name + '/')
+            self.folder.setCurrentItem(self.folder.item(0))
+            self.handlePreview(self.folder.item(0))
             msgBox = QtWidgets.QMessageBox(self)
             msgBox.setWindowTitle(self.windowTitle())
             msgBox.setIcon(QtWidgets.QMessageBox.Information)
@@ -574,7 +580,12 @@ class Main(QtWidgets.QDialog):
         self.state['running'].addTransition(transition)
 
         transition = utility.NamedTransition('FAIL')
-        # transition.onTransition = onTransition
+        def onTransition(event):
+            self.folder.open(self._temp.name + '/')
+            self.folder.setCurrentItem(self.folder.item(0))
+            self.handlePreview(self.folder.item(0))
+            self.fail(event.args[0])
+        transition.onTransition = onTransition
         transition.setTargetState(self.state['idle_done'])
         self.state['running'].addTransition(transition)
 
@@ -716,8 +727,6 @@ class Main(QtWidgets.QDialog):
             self.machine.postEvent(utility.NamedEvent('DONE', True))
 
         def fail(exception):
-            # print('FAIL', exception)
-            self.fail(exception)
             self.machine.postEvent(utility.NamedEvent('FAIL', exception))
 
         self.launcher = utility.UProcess(self.workRun)
@@ -752,16 +761,26 @@ class Main(QtWidgets.QDialog):
     def handlePreview(self, item):
         """Called by file double-click"""
         try:
-            self.pane['preview'].footer = pathlib.Path(item.file).name
-            self.preview.clear()
-            with open(item.file) as input:
-                while True:
-                    line = input.readline()
-                    # append adds \n so make sure we dont change line twice
-                    self.preview.appendPlainText(line[:-1])
-                    if not line:
-                        break
-            self.preview.moveCursor(QtGui.QTextCursor.Start)
+            path = pathlib.Path(item.file)
+            self.pane['preview'].footer = path.name
+            if path.suffix == '.svg':
+                self.stack.setCurrentWidget(self.graph)
+                self.graph.load(str(path))
+                self.graph.renderer().setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
+            else:
+                self.stack.setCurrentWidget(self.preview)
+                self.preview.clear()
+                with open(item.file) as input:
+                    for line in input:
+                        self.preview.insertPlainText(line)
+                format = QtGui.QTextBlockFormat()
+                # format.setLineHeight(200, QtGui.QTextBlockFormat.ProportionalHeight)
+                # format.setNonBreakableLines(True)
+                format.setTopMargin(10)
+                cursor = self.preview.textCursor()
+                cursor.select(QtGui.QTextCursor.Document);
+                cursor.mergeBlockFormat(format);
+                self.preview.moveCursor(QtGui.QTextCursor.Start)
         except Exception as exception:
             self.fail(exception)
             return
