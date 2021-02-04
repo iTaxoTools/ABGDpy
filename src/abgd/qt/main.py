@@ -61,12 +61,12 @@ class ResultItem(QtWidgets.QListWidgetItem):
         """Overloaded with new type"""
         super().__init__(parent=parent, type=self.Type)
         self.file = file
-        fileInfo = QtCore.QFileInfo(file)
-        suffix = fileInfo.suffix()
+        path = pathlib.Path(file)
+        suffix = path.suffix
         if not (suffix in self.Icons.keys()):
             suffix = None
         self.setIcon(self.Icons[suffix])
-        self.setText(fileInfo.baseName())
+        self.setText(path.name)
 
 class ResultView(QtWidgets.QListWidget):
     """
@@ -75,28 +75,27 @@ class ResultView(QtWidgets.QListWidget):
     """
     def open(self, folder):
         """Refresh contents"""
-        dir = QtCore.QDir(folder)
-        dir.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
-        path = pathlib.Path(dir.path())
+        self.clear()
+        path = pathlib.Path(folder)
 
         # log files
-        dir.setNameFilters(['*log*'])
-        for file in dir.entryList():
+        for file in list(path.glob('*.log')):
             ResultItem(str(path / file), self)
 
         # graph files
-        dir.setNameFilters(['*svg*'])
-        for file in dir.entryList():
+        for file in sorted(list(path.glob('*.svg'))):
             ResultItem(str(path / file), self)
 
         # spart files
-        dir.setNameFilters(['*spart*'])
-        for file in dir.entryList():
+        for file in sorted(list(path.glob('*.spart'))):
             ResultItem(str(path / file), self)
 
         # partition files
-        dir.setNameFilters(['*txt*'])
-        for file in dir.entryList():
+        for file in sorted(list(path.glob('*.txt'))):
+            ResultItem(str(path / file), self)
+
+        # tree files
+        for file in sorted(list(path.glob('*.tree'))):
             ResultItem(str(path / file), self)
 
 
@@ -342,13 +341,15 @@ class Main(QtWidgets.QDialog):
 
     def skin(self):
         """Configure widget appearance"""
-        ResultItem.Icons['txt'] = \
+        ResultItem.Icons['.txt'] = \
             QtGui.QIcon(pixmapFromVector(':/icons/file-alt-regular.svg'))
-        ResultItem.Icons['svg'] = \
+        ResultItem.Icons['.svg'] = \
             QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
-        ResultItem.Icons['log'] = \
+        ResultItem.Icons['.log'] = \
             QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
-        ResultItem.Icons['spart'] = \
+        ResultItem.Icons['.spart'] = \
+            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
+        ResultItem.Icons['.tree'] = \
             QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
 
     def draw(self):
@@ -399,7 +400,9 @@ class Main(QtWidgets.QDialog):
         self.pane['param'].body.addStretch(1)
 
         self.folder = ResultView()
+        self.folder.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.folder.itemActivated.connect(self.handlePreview)
+        self.folder.setStyleSheet("ResultView::item {padding: 2px;}")
 
         self.pane['list'] = Pane(self)
         self.pane['list'].title = 'Files'
@@ -465,7 +468,7 @@ class Main(QtWidgets.QDialog):
         self.action['save'] = QtWidgets.QAction('&Save', self)
         self.action['save'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/save-regular.svg')))
         self.action['save'].setShortcut(QtGui.QKeySequence.Save)
-        self.action['save'].setToolTip('Save all files')
+        self.action['save'].setToolTip('Save files with named prefix')
         self.action['save'].triggered.connect(self.handleSave)
 
         self.action['run'] = QtWidgets.QAction('&Run', self)
@@ -604,7 +607,7 @@ class Main(QtWidgets.QDialog):
         if fileName is None:
             (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
                 self.title + ' - Open File',
-                QtCore.QDir.currentPath(),
+                str(pathlib.Path.cwd()),
                 'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)',
                 options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if len(fileName) == 0:
@@ -615,18 +618,39 @@ class Main(QtWidgets.QDialog):
 
     def handleSave(self):
         """Called by toolbar action: save"""
-        fileOriginal = QtCore.QFileInfo(self.analysis.file)
-        dirOriginal = fileOriginal.absoluteDir()
+        path = pathlib.Path(self.analysis.file)
 
+        # Dialog name filters with their file-selecting functions
+        def fromSelection():
+            return [pathlib.Path(item.file) for item in self.folder.selectedItems()]
+
+        def fromFilter(filter):
+            def _fromFilter():
+                return list(pathlib.Path(self.temp.name).glob(filter))
+            return _fromFilter
+
+        nameFiltersWithSelectors = {
+            'All files (*)': fromFilter('*.*'),
+            'Selected files (*)': fromSelection,
+            'Spart files (*.spart)': fromFilter('*.spart'),
+            'Partition files (*.txt)': fromFilter('*.txt'),
+            'Vector Graphics (*.svg)': fromFilter('*.svg'),
+            'Log files (*.log)': fromFilter('*.log'),
+            }
+
+        # Widget-based dialog, filters decide what files are saved
         dialog = QtWidgets.QFileDialog()
-        dialog.setDirectory(dirOriginal)
-        dialog.setFileMode(QtWidgets.QFileDialog.Directory)
+        dialog.selectFile(str(path.stem))
+        dialog.setDirectory(str(path.parent))
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
         dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        # dialog.setOptions(
-        #     QtWidgets.QFileDialog.DontResolveSymlinks |
-        #     QtWidgets.QFileDialog.DontUseNativeDialog
-        #     )
+        dialog.setOptions(
+            QtWidgets.QFileDialog.DontResolveSymlinks |
+            QtWidgets.QFileDialog.DontUseNativeDialog
+            )
+        dialog.setNameFilters(nameFiltersWithSelectors.keys())
 
+        # Disable file selection
         class ProxyModel(QtCore.QIdentityProxyModel):
             def flags(self, index):
                 flags = super().flags(index)
@@ -634,29 +658,31 @@ class Main(QtWidgets.QDialog):
                     flags &= ~QtCore.Qt.ItemIsSelectable
                     flags &= ~QtCore.Qt.ItemIsEnabled
                 return flags
-
         proxy = ProxyModel(dialog)
         dialog.setProxyModel(proxy)
 
-        pathNew = ''
+        # All files will have this as prefix
+        saveTo = ''
         if (dialog.exec()):
-            pathNew = dialog.selectedFiles()[0]
-            print(pathNew)
-        if len(pathNew) == 0:
+            saveTo = dialog.selectedFiles()[0]
+            print('SAVING TO:',saveTo)
+        if len(saveTo) == 0:
             return
+        save = pathlib.Path(saveTo)
 
-        dirNew = QtCore.QDir(pathNew)
-        dirNew.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
-        filesNew = set(dirNew.entryList())
+        # Select the files that will be copied
+        filesFrom = nameFiltersWithSelectors[dialog.selectedNameFilter()]()
 
-        pathOld = self.temp.name
+        filesMap = {
+            file: save.with_name(save.name + '.' + file.name)
+            for file in filesFrom
+            }
 
-        dirOld = QtCore.QDir(pathOld)
-        dirOld.setFilter(QtCore.QDir.Files | QtCore. QDir.NoDotAndDotDot)
-        filesOld = set(dirOld.entryList())
+        # Check existing files for possible overwrites
+        existing = set(save.parent.glob('*'))
+        overlap = existing & set(filesMap.values())
 
-        filesOver = filesOld & filesNew
-        if len(filesOver) > 0:
+        if len(overlap) > 0:
             msgBox = QtWidgets.QMessageBox(self)
             msgBox.setWindowTitle(self.windowTitle())
             msgBox.setIcon(QtWidgets.QMessageBox.Question)
@@ -667,11 +693,10 @@ class Main(QtWidgets.QDialog):
             if confirm == QtWidgets.QMessageBox.No:
                 return
 
-        for file in dirOld:
-            src = QtCore.QDir.cleanPath(pathOld + QtCore.QDir.separator() + file)
-            dst = QtCore.QDir.cleanPath(pathNew + QtCore.QDir.separator() + file)
-            print(src, '->', dst)
-            shutil.copyfile(src, dst)
+        # Finally copy the files
+        for file in filesMap.keys():
+            print(file, '->', filesMap[file])
+            shutil.copyfile(file, filesMap[file])
 
     def handleRun(self):
         """Called by toolbar action: run"""
@@ -726,7 +751,6 @@ class Main(QtWidgets.QDialog):
 
     def handlePreview(self, item):
         """Called by file double-click"""
-        print('KLIK', item, item.file)
         try:
             self.pane['preview'].footer = pathlib.Path(item.file).name
             self.preview.clear()

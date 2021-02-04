@@ -678,7 +678,7 @@ char chaine [12];
 
 
 
-	sprintf(filename,"%s.disthist.svg",file);
+	sprintf(filename,"%sdisthist.svg",file);
 
 	svgout=fopen(filename,"w");
 	CreateHeadersvg(svgout,largeur+sizelegend, hauteur+sizelegend);
@@ -782,7 +782,7 @@ printf("first plot done\n");
 
 
 	//now draw the rank hist
-	sprintf(filename,"%s.rank.svg",file);
+	sprintf(filename,"%srank.svg",file);
 	svgout=fopen(filename,"w");
 	CreateHeadersvg(svgout,largeur+sizelegend+marge, hauteur+sizelegend+marge);
 

@@ -219,7 +219,7 @@ char *bout;
 	if (parseItem(dict, "logfile", 'b', &withlogfile)) return NULL;
 
 	if (withlogfile) {
-		sprintf(file_name,"%s%c%s.log.txt",dirfiles,separator,simplename);
+		sprintf(file_name,"%s%cabgd.log",dirfiles,separator);
 		printf("> Redirecting stdout/stderr to file: %s\n", file_name);
 		fflush(stdout);
 		fflush(stderr);
@@ -399,7 +399,7 @@ if (stat(dirfiles, &stfile) == -1)
 	mask=(char*)malloc( distmat.n*sizeof(char) );
 	if(!mask)fprintf(stderr, "main: cannot allocate mask, bye<BR>\n");
 	if (verbose)fprintf(stderr,"Writing histogram files\n");
-	sprintf(file_name,"%s%c%s",dirfiles,separator,simplename);
+	sprintf(file_name,"%s%c",dirfiles,separator);
  	createSVGhisto(file_name,distmat,nbbids);
 	if (verbose)fprintf(stderr," histogram Done\nBegining ABGD--->\n");
 
@@ -470,11 +470,11 @@ if (stat(dirfiles, &stfile) == -1)
 		if (withallfiles)
 			{
 
-			sprintf(file_name,"%s%c%s.partinit.%d.txt",dirfiles,separator,simplename,myD+1);
+			sprintf(file_name,"%s%cpartinit.%d.txt",dirfiles,separator,myD+1);
 			fout=fopen(file_name,"w");
 			if (fout==NULL)
 				printf("problem opening result file %s\n",file_name), exit(1);
-			sprintf(file_name,"%s%c%s.partinit.%d.tree",dirfiles,separator,simplename,myD+1);
+			sprintf(file_name,"%s%cpartinit.%d.tree",dirfiles,separator,myD+1);
 			f2=fopen(file_name,"w");
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
 
@@ -485,7 +485,7 @@ if (stat(dirfiles, &stfile) == -1)
 			}
 		else if(notreefile)
 			{
-			sprintf(file_name,"%s%c%s.partinit.%d.txt",dirfiles,separator,simplename,myD+1);
+			sprintf(file_name,"%s%cpartinit.%d.txt",dirfiles,separator,myD+1);
 			fout=fopen(file_name,"w");
 
 			if (fout==NULL)
@@ -587,13 +587,13 @@ if (stat(dirfiles, &stfile) == -1)
 
 		if (withallfiles){
 
-			sprintf(file_name,"%s%c%s.part.%d.txt",dirfiles,separator,simplename,myD+1);
+			sprintf(file_name,"%s%cpart.%d.txt",dirfiles,separator,myD+1);
 			fout=fopen(file_name,"w");
 
 			if (fout==NULL)
 				printf("problem opening result file %s\n",file_name), exit(1);
 
-			sprintf(file_name,"%s%c%s.part.%d.tree",dirfiles,separator,simplename,myD+1);
+			sprintf(file_name,"%s%cpart.%d.tree",dirfiles,separator,myD+1);
 			f2=fopen(file_name,"w");
 
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
@@ -609,7 +609,7 @@ if (stat(dirfiles, &stfile) == -1)
 		}
 		else if(notreefile)
 		{
-		sprintf(file_name,"%s%c%s.part.%d.txt",dirfiles,separator,simplename,myD+1);
+		sprintf(file_name,"%s%cpart.%d.txt",dirfiles,separator,myD+1);
 		fout=fopen(file_name,"w");
 
 		if (fout==NULL)
@@ -640,7 +640,7 @@ if (stat(dirfiles, &stfile) == -1)
 	else
 		{
 
-		sprintf(file_name,"%s%c%s.abgd.svg",dirfiles,separator,simplename);
+		sprintf(file_name,"%s%cabgd.svg",dirfiles,separator);
 		if(verbose) fprintf(stderr,"writing graphx file\n");
 		CreateGraphFiles(mySpecies, specInit,myDist, myD, ledir, meth, file_name);   /* go for a nice piece of draw */
 		if(verbose) fprintf(stderr,"writing graphx file done\n");

@@ -41,7 +41,7 @@ To verify that no errors occured, check that the process exitcode is 0.
 
 ## Changes
 
-The original ABGD code was also slightly altered for the cross-platform wrapper to compile:
+The original ABGD code was also slightly altered for the cross-platform wrapper to compile. Here follows a *noncomprehensive* list of changes:
 
 - Create `main_abgd.h`: header file exposing `main_abgd.c` functions, used by `abgdmodule.c/abgd_main`
 - Remove header includes: `strings.h` `unistd.h` `dirent.h`: linux-only libraries
@@ -53,8 +53,8 @@ The original ABGD code was also slightly altered for the cross-platform wrapper 
 -- Change variable `dirfiles` into a `const char`
 -- Replace some `exit(1)` occurences with Python exceptions
 -- Fetch and use module global `separator` for all pathnames
+-- No longer prefix output files with input basename
 -- Add option for stdout/stderr redirection to a file
-- And more
 
 
 ## Original README file
