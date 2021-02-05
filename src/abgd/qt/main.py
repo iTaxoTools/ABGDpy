@@ -7,12 +7,14 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtSvg as QtSvg
 
+import os
 import sys
 import logging
 import tempfile
 import time
 import shutil
 import pathlib
+import re
 
 from .. import core
 from ..param import qt as param_qt
@@ -20,17 +22,45 @@ from ..param import qt as param_qt
 from . import utility
 from . import icons
 
-import os
 core.abgdc.separator = os.path.sep
 
-def pixmapFromVector(path, size=32, color='#595b61'):
-    pixmap = QtGui.QPixmap(path)
-    mask = pixmap.createMaskFromColor(
-        QtGui.QColor('black'), QtCore.Qt.MaskOutColor)
-    pixmap.fill(QtGui.QColor(color))
-    pixmap.setMask(mask)
-    return pixmap.scaled(size,size,transformMode=QtCore.Qt.SmoothTransformation)
 
+class VPixmap(QtGui.QPixmap):
+    """A colored vector pixmap"""
+    def __init__(self, fileName, size=None, colormap=None):
+        """
+        Load an SVG resource file and replace colors according to
+        provided dictionary `colormap`. Only fill and stroke is replaced.
+        Also scales the pixmap if a QSize is provided.
+        """
+        file = QtCore.QFile(fileName)
+        if not file.open(QtCore.QIODevice.ReadOnly):
+            raise FileNotFoundError('Vector resource not found: ' + fileName)
+        text = file.readAll().data().decode()
+        file.close()
+
+        if colormap is not None:
+            # match options fill|stroke followed by a key color
+            regex = '(?P<prefix>(fill|stroke)\:)(?P<color>' + \
+                '|'.join(map(re.escape, colormap.keys()))+')'
+            # replace just the color according to colormap
+            text = re.sub(regex, lambda mo: mo.group('prefix') + colormap[mo.group('color')], text)
+
+        renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(text.encode()))
+        size = renderer.defaultSize() if size is None else size
+        super().__init__(size)
+        self.fill(QtCore.Qt.transparent)
+        painter = QtGui.QPainter(self)
+        renderer.render(painter)
+        painter.end()
+
+class VIcon(QtGui.QIcon):
+    """A colored vector icon"""
+    def __init__(self, fileName, colormap_modes):
+        """Create pixmaps with colormaps matching the dictionary modes"""
+        super().__init__()
+        for mode in colormap_modes.keys():
+            self.addPixmap(VPixmap(fileName,colormap=colormap_modes[mode]), mode)
 
 class SquareImage(QtWidgets.QLabel):
     """Width will always equal height"""
@@ -326,10 +356,10 @@ class Main(QtWidgets.QDialog):
         self.resize(854,480)
 
         self.machine = None
+        self.skin()
         self.draw()
         self.act()
         self.cog()
-        self.skin()
 
         if init is not None:
             self.machine.started.connect(init)
@@ -342,16 +372,26 @@ class Main(QtWidgets.QDialog):
 
     def skin(self):
         """Configure widget appearance"""
+        self.colormap = {
+            VIcon.Normal: {
+                'black':    '#454241',
+                'red':      '#ee4e5f',
+                },
+            VIcon.Disabled: {
+                'black':    '#abaaa8',
+                'red':      '#ffcccc',
+                },
+            }
         ResultItem.Icons['.txt'] = \
-            QtGui.QIcon(pixmapFromVector(':/icons/file-alt-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/file-alt-regular.svg'))
         ResultItem.Icons['.svg'] = \
-            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
         ResultItem.Icons['.log'] = \
-            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
         ResultItem.Icons['.spart'] = \
-            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
         ResultItem.Icons['.tree'] = \
-            QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
 
     def draw(self):
         """Draw all widgets"""
@@ -373,7 +413,7 @@ class Main(QtWidgets.QDialog):
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
 
         self.line.icon = QtWidgets.QLabel()
-        self.line.icon.setPixmap(pixmapFromVector(':/icons/file-alt-regular.svg', 16))
+        self.line.icon.setPixmap(VPixmap(':/icons/file-alt-regular.svg', QtCore.QSize(16,16)))
         self.line.file = QtWidgets.QLineEdit()
         self.line.file.setPlaceholderText('Open a file to start')
         self.line.file.setReadOnly(True)
@@ -462,27 +502,29 @@ class Main(QtWidgets.QDialog):
         self.action = {}
 
         self.action['open'] = QtWidgets.QAction('&Open', self)
-        self.action['open'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/folder-open-regular.svg')))
+        self.action['open'].setIcon(VIcon(':/icons/placeholder.svg', self.colormap))
         self.action['open'].setShortcut(QtGui.QKeySequence.Open)
         self.action['open'].setToolTip((
             'Open an aligned fasta file or a distance matrix\n'
-            '(format from phylip dnadist or MEGA)'))
+            'Accepted formats: phylip, dnadist and MEGA'))
         self.action['open'].triggered.connect(self.handleOpen)
 
         self.action['save'] = QtWidgets.QAction('&Save', self)
-        self.action['save'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/save-regular.svg')))
+        self.action['save'].setIcon(VIcon(':/icons/placeholder.svg', self.colormap))
         self.action['save'].setShortcut(QtGui.QKeySequence.Save)
-        self.action['save'].setToolTip('Save files with named prefix')
+        self.action['save'].setToolTip((
+            'Save files with a prefix of your choice\n'
+            'Change filter to choose what files are saved'))
         self.action['save'].triggered.connect(self.handleSave)
 
         self.action['run'] = QtWidgets.QAction('&Run', self)
-        self.action['run'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/play-circle-regular.svg')))
+        self.action['run'].setIcon(QtGui.QIcon(VPixmap(':/icons/play-circle-regular.svg')))
         self.action['run'].setShortcut('Ctrl+R')
         self.action['run'].setToolTip('Run ABGD analysis')
         self.action['run'].triggered.connect(self.handleRun)
 
         self.action['stop'] = QtWidgets.QAction('Stop', self)
-        self.action['stop'].setIcon(QtGui.QIcon(pixmapFromVector(':/icons/stop-circle-regular.svg')))
+        self.action['stop'].setIcon(QtGui.QIcon(VPixmap(':/icons/stop-circle-regular.svg')))
         self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
         self.action['stop'].setToolTip('Cancel analysis')
         self.action['stop'].triggered.connect(self.handleStop)
@@ -619,7 +661,7 @@ class Main(QtWidgets.QDialog):
             (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
                 self.title + ' - Open File',
                 str(pathlib.Path.cwd()),
-                'All Files (*) ;; Newick (*.nwk) ;; Rates Analysis (*.r8s)',
+                'All Files (*)',
                 options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if len(fileName) == 0:
             return

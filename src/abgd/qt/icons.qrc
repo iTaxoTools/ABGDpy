@@ -10,8 +10,9 @@
     <file>icons/stop-circle-regular.svg</file>
     <file>icons/pyr8s-icon.png</file>
     <file>icons/itaxotools-micrologo.png</file>
+    <file>icons/placeholder.svg</file>
   </qresource>
-  <!-- To generate module: pyrcc5 icons.qrc -o icons.py -->
-  <!-- Icons from fontawesome.com -->
+  <!-- To generate module: python setup.py build_qt -->
+  <!-- Sample icons from fontawesome.com -->
   <!-- https://fontawesome.com/license -->
 </RCC>
