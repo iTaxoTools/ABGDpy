@@ -11,6 +11,17 @@
     <file>icons/pyr8s-icon.png</file>
     <file>icons/itaxotools-micrologo.png</file>
     <file>icons/placeholder.svg</file>
+    <file>icons/open.svg</file>
+    <file>icons/save.svg</file>
+    <file>icons/run.svg</file>
+    <file>icons/stop.svg</file>
+    <file>icons/arrow-right.svg</file>
+    <file>icons/file-graph.svg</file>
+    <file>icons/file-text.svg</file>
+    <file>icons/file-spart.svg</file>
+    <file>icons/file-tree.svg</file>
+    <file>icons/file-log.svg</file>
+    <file>icons/abgd-logo.svg</file>
   </qresource>
   <!-- To generate module: python setup.py build_qt -->
   <!-- Sample icons from fontawesome.com -->

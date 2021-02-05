@@ -247,8 +247,7 @@ class Header(QtWidgets.QFrame):
 
     @title.setter
     def logoTool(self, logo):
-        self.labelLogoTool.setPixmap(
-            logo.scaled(self.logoSize,self.logoSize))
+        self.labelLogoTool.setPixmap(logo)
         self._logoTool = logo
 
     @property
@@ -374,30 +373,42 @@ class Main(QtWidgets.QDialog):
         """Configure widget appearance"""
         self.colormap = {
             VIcon.Normal: {
-                'black':    '#454241',
-                'red':      '#ee4e5f',
+                '#000000':  '#454241',
+                '#ff0000':  '#ee4e5f',
                 },
             VIcon.Disabled: {
-                'black':    '#abaaa8',
-                'red':      '#ffcccc',
+                '#000000':  '#abaaa8',
+                '#ff0000':  '#ffcccc',
                 },
             }
+
+        self.colormap_icon =  {
+            '#000000':  '#655c5d',
+            '#ff0000':  '#e2001a',
+            '#ffa500':  '#eb6a4a',
+            }
         ResultItem.Icons['.txt'] = \
-            QtGui.QIcon(VPixmap(':/icons/file-alt-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/file-text.svg',
+                colormap=self.colormap_icon))
         ResultItem.Icons['.svg'] = \
-            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/file-graph.svg',
+                colormap=self.colormap_icon))
         ResultItem.Icons['.log'] = \
-            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/file-log.svg',
+                colormap=self.colormap_icon))
         ResultItem.Icons['.spart'] = \
-            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/file-spart.svg',
+                colormap=self.colormap_icon))
         ResultItem.Icons['.tree'] = \
-            QtGui.QIcon(VPixmap(':/icons/folder-open-regular.svg'))
+            QtGui.QIcon(VPixmap(':/icons/file-tree.svg',
+                colormap=self.colormap_icon))
 
     def draw(self):
         """Draw all widgets"""
         self.header = Header()
         self.header.title = self.title
-        self.header.logoTool = QtGui.QPixmap(':/icons/pyr8s-icon.png')
+        self.header.logoTool = VPixmap(':/icons/abgd-logo.svg',
+            colormap=self.colormap_icon)
         self.header.logoProject = QtGui.QPixmap(':/icons/itaxotools-micrologo.png')
         self.header.description = (
             'Primary species delimitation' + '\n'
@@ -411,20 +422,35 @@ class Main(QtWidgets.QDialog):
         self.line = QtWidgets.QFrame()
         self.line.setSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
+        self.line.setStyleSheet("""
+            QFrame {
+                background-color: #e1e0de;
+                border-style: solid;
+                border-width: 2px 0px 2px 0px;
+                border-color: #abaaa8;
+                }
+            """)
 
         self.line.icon = QtWidgets.QLabel()
-        self.line.icon.setPixmap(VPixmap(':/icons/file-alt-regular.svg', QtCore.QSize(16,16)))
+        self.line.icon.setPixmap(VPixmap(':/icons/arrow-right.svg',
+            colormap=self.colormap_icon))
+        self.line.icon.setStyleSheet('border-style: none;')
+
         self.line.file = QtWidgets.QLineEdit()
         self.line.file.setPlaceholderText('Open a file to start')
         self.line.file.setReadOnly(True)
-        self.line.file.setStyleSheet('padding: 2px 4px 2px 4px;')
+        self.line.file.setStyleSheet("""
+            background-color: white;
+            padding: 2px 4px 2px 4px;
+            """)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addSpacing(4)
         layout.addWidget(self.line.icon)
-        layout.addSpacing(6)
+        layout.addSpacing(2)
         layout.addWidget(self.line.file)
-        layout.addSpacing(4)
+        layout.addSpacing(14)
+        layout.setContentsMargins(4, 4, 4, 4)
         self.line.setLayout(layout)
 
         self.pane = {}
@@ -473,8 +499,8 @@ class Main(QtWidgets.QDialog):
         self.splitter.addWidget(self.pane['param'])
         self.splitter.addWidget(self.pane['list'])
         self.splitter.addWidget(self.pane['preview'])
-        self.splitter.setStretchFactor(0,1)
-        self.splitter.setStretchFactor(1,1)
+        self.splitter.setStretchFactor(0,0)
+        self.splitter.setStretchFactor(1,0)
         self.splitter.setStretchFactor(2,1)
         self.splitter.setCollapsible(0,False)
         self.splitter.setCollapsible(1,False)
@@ -502,7 +528,7 @@ class Main(QtWidgets.QDialog):
         self.action = {}
 
         self.action['open'] = QtWidgets.QAction('&Open', self)
-        self.action['open'].setIcon(VIcon(':/icons/placeholder.svg', self.colormap))
+        self.action['open'].setIcon(VIcon(':/icons/open.svg', self.colormap))
         self.action['open'].setShortcut(QtGui.QKeySequence.Open)
         self.action['open'].setToolTip((
             'Open an aligned fasta file or a distance matrix\n'
@@ -510,7 +536,7 @@ class Main(QtWidgets.QDialog):
         self.action['open'].triggered.connect(self.handleOpen)
 
         self.action['save'] = QtWidgets.QAction('&Save', self)
-        self.action['save'].setIcon(VIcon(':/icons/placeholder.svg', self.colormap))
+        self.action['save'].setIcon(VIcon(':/icons/save.svg', self.colormap))
         self.action['save'].setShortcut(QtGui.QKeySequence.Save)
         self.action['save'].setToolTip((
             'Save files with a prefix of your choice\n'
@@ -518,13 +544,13 @@ class Main(QtWidgets.QDialog):
         self.action['save'].triggered.connect(self.handleSave)
 
         self.action['run'] = QtWidgets.QAction('&Run', self)
-        self.action['run'].setIcon(QtGui.QIcon(VPixmap(':/icons/play-circle-regular.svg')))
+        self.action['run'].setIcon(VIcon(':/icons/run.svg', self.colormap))
         self.action['run'].setShortcut('Ctrl+R')
         self.action['run'].setToolTip('Run ABGD analysis')
         self.action['run'].triggered.connect(self.handleRun)
 
         self.action['stop'] = QtWidgets.QAction('Stop', self)
-        self.action['stop'].setIcon(QtGui.QIcon(VPixmap(':/icons/stop-circle-regular.svg')))
+        self.action['stop'].setIcon(VIcon(':/icons/stop.svg', self.colormap))
         self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
         self.action['stop'].setToolTip('Cancel analysis')
         self.action['stop'].triggered.connect(self.handleStop)
