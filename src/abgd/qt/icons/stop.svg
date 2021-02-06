@@ -7,9 +7,9 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="48"
-   height="48"
-   viewBox="0 0 12.7 12.7"
+   width="32"
+   height="32"
+   viewBox="0 0 8.4666667 8.4666667"
    version="1.1"
    id="svg1880"
    inkscape:version="1.0.2 (e86c870879, 2021-01-15, custom)"
@@ -19,15 +19,15 @@
     <marker
        style="overflow:visible"
        id="Arrow1Lstart"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="Arrow1Lstart"
        inkscape:isstock="true">
       <path
-         transform="scale(0.8) translate(12.5,0)"
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt"
-         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
          id="path884" />
     </marker>
   </defs>
@@ -38,9 +38,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="31.678384"
-     inkscape:cx="26.784076"
-     inkscape:cy="25.20858"
+     inkscape:zoom="22.4"
+     inkscape:cx="17.565337"
+     inkscape:cy="12.932973"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -62,6 +62,22 @@
     <inkscape:grid
        type="xygrid"
        id="grid862" />
+    <sodipodi:guide
+       position="2.38125,4.2333333"
+       orientation="0,-1"
+       id="guide841" />
+    <sodipodi:guide
+       position="4.4979167,5.55625"
+       orientation="0,-1"
+       id="guide843" />
+    <sodipodi:guide
+       position="4.7625,2.9104167"
+       orientation="0,-1"
+       id="guide845" />
+    <sodipodi:guide
+       position="4.2333333,6.0854167"
+       orientation="1,0"
+       id="guide847" />
   </sodipodi:namedview>
   <metadata
      id="metadata1877">
@@ -82,16 +98,16 @@
     <circle
        style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.529165;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
        id="ellipse843"
-       cx="6.3499999"
-       cy="6.3499999"
-       r="4.4979177" />
+       cx="4.2411151"
+       cy="4.2411151"
+       r="3.6963854" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.529167;stroke-linecap:square;stroke-linejoin:round"
        id="rect853"
-       width="3.7041667"
-       height="3.7041667"
-       x="4.4979167"
-       y="4.4979167"
-       ry="0.24694443" />
+       width="3.1749997"
+       height="3.1749997"
+       x="2.6458335"
+       y="2.6458335"
+       ry="0.21166664" />
   </g>
 </svg>

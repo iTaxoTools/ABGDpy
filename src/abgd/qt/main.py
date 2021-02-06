@@ -62,22 +62,71 @@ class VIcon(QtGui.QIcon):
         for mode in colormap_modes.keys():
             self.addPixmap(VPixmap(fileName,colormap=colormap_modes[mode]), mode)
 
-class SquareImage(QtWidgets.QLabel):
-    """Width will always equal height"""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._size = None
+class VLine(QtWidgets.QFrame):
+    """Vertical line separator"""
+    def __init__(self, width=2):
+        super().__init__()
+        self.setFixedWidth(width)
+        self.setFrameShape(QtWidgets.QFrame.VLine)
+        self.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.setStyleSheet("""
+            background: palette(Mid);
+            border: none;
+            margin: 4px;
+            """)
+
+class ScalingImage(QtWidgets.QLabel):
+    """Keep aspect ratio, width adjusts with height"""
+    def __init__(self, pixmap=None):
+        """Remember given pixmap and ratio"""
+        super().__init__()
+        self.setScaledContents(False)
+        self._polished = False
+        self._logo = None
+        self._ratio = 0
+        if pixmap is not None:
+            self.logo = pixmap
+
+    @property
+    def logo(self):
+        return self._logo
+
+    @logo.setter
+    def logo(self, logo):
+        """Accepts logo as a new pixmap to show"""
+        self._logo = logo
+        self._ratio = logo.width()/logo.height()
+        self._scale()
+
+    def _scale(self):
+        """Create new pixmap to match new sizes"""
+        if self._logo is None:
+            return
+        h = self.height()
+        w = h * self._ratio
+        self.setPixmap(self._logo.scaled(w, h,
+            QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
 
     def minimumSizeHint(self):
-        if self._size is not None:
-            return QtCore.QSize(self._size, self._size)
+        return QtCore.QSize(1, 1)
+
+    def sizeHint(self):
+        if self._polished is True and self._ratio != 0:
+            h = self.height()
+            return QtCore.QSize(h * self._ratio, h)
         else:
-            return super().minimumSizeHint()
+            return QtCore.QSize(1, 1)
 
     def resizeEvent(self, event):
+        self._scale()
         super().resizeEvent(event)
-        self._size = max(event.size().height(), event.size().width())
-        self.updateGeometry()
+
+    def event(self, ev):
+        """Let sizeHint know that sizes are now real"""
+        if ev.type() == QtCore.QEvent.PolishRequest:
+            self._polished = True
+            self.updateGeometry()
+        return super().event(ev)
 
 
 class ResultItem(QtWidgets.QListWidgetItem):
@@ -139,11 +188,9 @@ class Header(QtWidgets.QFrame):
         """ """
         super().__init__()
 
-        self._title = None
         self._description = None
         self._citation = None
         self._logoTool = None
-        self._logoProject = None
 
         self.logoSize = 64
 
@@ -151,77 +198,97 @@ class Header(QtWidgets.QFrame):
 
     def draw(self):
         """ """
-        self.setContentsMargins(5,5,5,5)
         self.setStyleSheet("""
             Header {
-                background: transparent;
-                border-bottom: 2px solid palette(Dark);
+                background: palette(Light);
+                border-top: 2px solid palette(Mid);
+                border-bottom: 1px solid palette(Dark);
                 }
             """)
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
 
-        self.labelTitle = QtWidgets.QLabel('TITLE')
-        self.labelTitle.setStyleSheet(
-            "font-size: 28px; font-weight: bold; color: #595b61")
-
         self.labelDescription = QtWidgets.QLabel('DESCRIPTION')
-        self.labelDescription.setStyleSheet(
-            "font-size: 11px; font-weight: bold; color: #595b61")
+        self.labelDescription.setStyleSheet("""
+            color: palette(Text);
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            """)
 
         self.labelCitation = QtWidgets.QLabel('CITATION')
-        self.labelCitation.setStyleSheet(
-            "font-size: 11px;")
+        self.labelCitation.setStyleSheet("""
+            color: palette(Shadow);
+            font-size: 12px;
+            """)
 
-        self.labelLogoTool = SquareImage()
+        self.labelLogoTool = QtWidgets.QLabel()
         self.labelLogoTool.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.labelLogoProject = SquareImage()
-        self.labelLogoProject.setAlignment(QtCore.Qt.AlignCenter)
+        self.labelLogoProject = ScalingImage()
+        layoutLogoProject = QtWidgets.QHBoxLayout()
+        layoutLogoProject.addWidget(self.labelLogoProject)
+        layoutLogoProject.setContentsMargins(2,4,2,4)
 
         self.toolbar = QtWidgets.QToolBar()
-        self.toolbar.setIconSize(QtCore.QSize(38,38))
+        self.toolbar.setIconSize(QtCore.QSize(32,32))
         self.toolbar.setSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.toolbar.setToolButtonStyle(
             QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        self.toolbar.setStyleSheet("""
+            QToolBar {
+                spacing: 2px;
+                }
+            QToolButton {
+                background: transparent;
+                border: 2px solid transparent;
+                border-radius: 3px;
+                font-size: 14px;
+                min-width: 50px;
+                min-height: 60px;
+                padding: 6px 0px 0px 0px;
+                margin: 4px 0px 4px 0px;
+                }
+            QToolButton:hover {
+                background: palette(Window);
+                border: 2px solid transparent;
+                }
+            QToolButton:pressed {
+                background: palette(Midlight);
+                border: 2px solid palette(Mid);
+                border-radius: 3px;
+                color: palette(Shadow);
+                }
+            """)
 
-        # self.toolbar.actionTriggered.connect(lambda x: print(x))
-
-        left = QtWidgets.QGridLayout()
-        left.addWidget(self.labelLogoTool, 0, 0, 2, 1)
-        left.addWidget(self.labelTitle, 0, 1)
-        left.addWidget(self.labelDescription, 0, 2)
-        left.addWidget(self.labelCitation, 1, 1, 1, 2)
-        left.setColumnStretch(0,0)
-        left.setColumnStretch(1,0)
-        left.setColumnStretch(2,1)
-        left.setContentsMargins(0, 0, 0, 0)
-        left.setHorizontalSpacing(12)
-        left.setVerticalSpacing(0)
-
-        right = QtWidgets.QHBoxLayout()
-        right.addWidget(self.toolbar, 0)
-        right.addStretch(1)
-        right.addWidget(self.labelLogoProject, 0)
-        right.setContentsMargins(0, 0, 0, 0)
-        right.setSpacing(12)
+        labels = QtWidgets.QVBoxLayout()
+        labels.addSpacing(4)
+        labels.addWidget(self.labelDescription)
+        labels.addWidget(self.labelCitation)
+        labels.addSpacing(4)
+        labels.setSpacing(4)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(left, 5)
-        layout.addLayout(right, 3)
+        layout.addSpacing(18)
+        layout.addWidget(self.labelLogoTool)
+        layout.addSpacing(12)
+        layout.addWidget(VLine())
+        layout.addSpacing(12)
+        layout.addLayout(labels, 0)
+        layout.addSpacing(12)
+        layout.addWidget(VLine())
+        layout.addSpacing(8)
+        layout.addWidget(self.toolbar, 0)
+        layout.addStretch(1)
+        layout.addWidget(VLine())
+        layout.addLayout(layoutLogoProject, 0)
+        # layout.addWidget(self.labelLogoProject)
+        layout.addSpacing(2)
+        layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(layout)
-
-    @property
-    def title(self):
-        return self._title
-
-    @title.setter
-    def title(self, title):
-        self.labelTitle.setText(title)
-        self._title = title
 
     @property
     def description(self):
@@ -245,20 +312,18 @@ class Header(QtWidgets.QFrame):
     def logoTool(self):
         return self._logoTool
 
-    @title.setter
+    @logoTool.setter
     def logoTool(self, logo):
         self.labelLogoTool.setPixmap(logo)
         self._logoTool = logo
 
     @property
     def logoProject(self):
-        return self._logoProject
+        return self.labelLogoProject.logo
 
-    @title.setter
+    @logoProject.setter
     def logoProject(self, logo):
-        self.labelLogoProject.setPixmap(
-            logo.scaled(self.logoSize,self.logoSize))
-        self._logoProject = logo
+        self.labelLogoProject.logo = logo
 
 
 class Pane(QtWidgets.QWidget):
@@ -289,8 +354,9 @@ class Pane(QtWidgets.QWidget):
             QLabel {
                 font-size: 14px;
                 font-weight: bold;
-                color: #595b61;
-                background: transparent;
+                color: palette(Light);
+                background: palette(Shadow);
+                border-right: 1px solid palette(Dark);
                 border-bottom: 1px solid palette(Dark);
                 }
             """)
@@ -371,21 +437,91 @@ class Main(QtWidgets.QDialog):
 
     def skin(self):
         """Configure widget appearance"""
+        color = {
+            'white':  '#ffffff',
+            'light':  '#eff1ee',
+            'beige':  '#e1e0de',
+            'gray':   '#abaaa8',
+            'iron':   '#8b8d8a',
+            'black':  '#454241',
+            'red':    '#ee4e5f',
+            'pink':   '#eb9597',
+            'orange': '#eb6a4a',
+            'brown':  '#655c5d',
+            'green':  '#00ff00',
+            }
+        # using green for debugging
+        palette = QtGui.QGuiApplication.palette()
+        scheme = {
+            QtGui.QPalette.Active: {
+                QtGui.QPalette.Window: 'light',
+                QtGui.QPalette.WindowText: 'black',
+                QtGui.QPalette.Base: 'white',
+                QtGui.QPalette.AlternateBase: 'light',
+                QtGui.QPalette.PlaceholderText: 'brown',
+                QtGui.QPalette.Text: 'black',
+                QtGui.QPalette.Button: 'light',
+                QtGui.QPalette.ButtonText: 'black',
+                QtGui.QPalette.Light: 'white',
+                QtGui.QPalette.Midlight: 'beige',
+                QtGui.QPalette.Mid: 'gray',
+                QtGui.QPalette.Dark: 'iron',
+                QtGui.QPalette.Shadow: 'brown',
+                QtGui.QPalette.Highlight: 'red',
+                QtGui.QPalette.HighlightedText: 'white',
+                # These seem bugged anyway
+                QtGui.QPalette.BrightText: 'green',
+                QtGui.QPalette.ToolTipBase: 'green',
+                QtGui.QPalette.ToolTipText: 'green',
+                QtGui.QPalette.Link: 'green',
+                QtGui.QPalette.LinkVisited: 'green',
+                },
+            QtGui.QPalette.Disabled: {
+                QtGui.QPalette.Window: 'light',
+                QtGui.QPalette.WindowText: 'iron',
+                QtGui.QPalette.Base: 'white',
+                QtGui.QPalette.AlternateBase: 'light',
+                QtGui.QPalette.PlaceholderText: 'green',
+                QtGui.QPalette.Text: 'iron',
+                QtGui.QPalette.Button: 'light',
+                QtGui.QPalette.ButtonText: 'iron',
+                QtGui.QPalette.Light: 'white',
+                QtGui.QPalette.Midlight: 'beige',
+                QtGui.QPalette.Mid: 'gray',
+                QtGui.QPalette.Dark: 'iron',
+                QtGui.QPalette.Shadow: 'brown',
+                QtGui.QPalette.Highlight: 'pink',
+                QtGui.QPalette.HighlightedText: 'white',
+                # These seem bugged anyway
+                QtGui.QPalette.BrightText: 'green',
+                QtGui.QPalette.ToolTipBase: 'green',
+                QtGui.QPalette.ToolTipText: 'green',
+                QtGui.QPalette.Link: 'green',
+                QtGui.QPalette.LinkVisited: 'green',
+                },
+            }
+        scheme[QtGui.QPalette.Inactive] = scheme[QtGui.QPalette.Active]
+        for group in scheme:
+            for role in scheme[group]:
+                palette.setColor(group, role,
+                    QtGui.QColor(color[scheme[group][role]]))
+        QtGui.QGuiApplication.setPalette(palette)
+
         self.colormap = {
             VIcon.Normal: {
-                '#000000':  '#454241',
-                '#ff0000':  '#ee4e5f',
+                '#000000': color['black'],
+                '#ff0000': color['red'],
                 },
             VIcon.Disabled: {
-                '#000000':  '#abaaa8',
-                '#ff0000':  '#ffcccc',
+                '#000000': color['iron'],
+                '#ff0000': color['orange'],
                 },
             }
 
         self.colormap_icon =  {
-            '#000000':  '#655c5d',
-            '#ff0000':  '#e2001a',
-            '#ffa500':  '#eb6a4a',
+            '#000000': color['black'],
+            '#ff0000': color['red'],
+            '#ffa500': color['pink'],
             }
         ResultItem.Icons['.txt'] = \
             QtGui.QIcon(VPixmap(':/icons/file-text.svg',
@@ -415,8 +551,8 @@ class Main(QtWidgets.QDialog):
             'using automatic barcode gap discovery'
             )
         self.header.citation = (
-            'ABGD by G Achaz, S Brouillet, BIONJ by O Gascuel' + '\n'
-            'Python wrapper by S Patmanidis'
+            'ABGD by G. Achaz, S. Brouillet, BIONJ by O. Gascuel' + '\n'
+            'Python wrapper by S. Patmanidis'
         )
 
         self.line = QtWidgets.QFrame()
@@ -424,10 +560,10 @@ class Main(QtWidgets.QDialog):
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
         self.line.setStyleSheet("""
             QFrame {
-                background-color: #e1e0de;
+                background-color: palette(Midlight);
                 border-style: solid;
-                border-width: 2px 0px 2px 0px;
-                border-color: #abaaa8;
+                border-width: 1px 0px 1px 0px;
+                border-color: palette(Mid);
                 }
             """)
 
@@ -440,8 +576,12 @@ class Main(QtWidgets.QDialog):
         self.line.file.setPlaceholderText('Open a file to start')
         self.line.file.setReadOnly(True)
         self.line.file.setStyleSheet("""
-            background-color: white;
-            padding: 2px 4px 2px 4px;
+            QLineEdit {
+                background-color: palette(Base);
+                padding: 2px 4px 2px 4px;
+                border-radius: 4px;
+                border: 1px solid palette(Mid);
+                }
             """)
 
         layout = QtWidgets.QHBoxLayout()
@@ -459,23 +599,26 @@ class Main(QtWidgets.QDialog):
         # self.paramWidget.setStyleSheet("background: blue;")
         self.paramWidget.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.paramWidget.setContentsMargins(0, 0, 0, 0)
 
         self.pane['param'] = Pane(self)
         self.pane['param'].title = 'Parameters'
         self.pane['param'].footer = 'Hover parameters for tips'
         self.pane['param'].body.addWidget(self.paramWidget)
         self.pane['param'].body.addStretch(1)
+        self.pane['param'].body.setContentsMargins(0, 0, 0, 0)
 
         self.folder = ResultView()
         self.folder.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.folder.itemActivated.connect(self.handlePreview)
         self.folder.setStyleSheet("ResultView::item {padding: 2px;}")
+        self.folder.setAlternatingRowColors(True)
 
         self.pane['list'] = Pane(self)
         self.pane['list'].title = 'Files'
         self.pane['list'].footer = 'Nothing to show'
         self.pane['list'].body.addWidget(self.folder)
-        self.pane['list'].body.setContentsMargins(5, 5, 5, 5)
+        self.pane['list'].body.setContentsMargins(1, 1, 1, 1)
         # self.pane['list'].body.addStretch(1)
 
         self.preview = QtWidgets.QTextEdit()
@@ -484,6 +627,10 @@ class Main(QtWidgets.QDialog):
         self.preview.setReadOnly(True)
 
         self.graph = QtSvg.QSvgWidget()
+        self.graph.setStyleSheet("""
+            background-color: palette(Base);
+            border: 1px solid palette(Mid);
+            """)
 
         self.stack = QtWidgets.QStackedLayout()
         self.stack.addWidget(self.preview)
@@ -493,7 +640,7 @@ class Main(QtWidgets.QDialog):
         self.pane['preview'].title = 'Preview'
         self.pane['preview'].footer = 'Nothing to show'
         self.pane['preview'].body.addLayout(self.stack)
-        self.pane['preview'].body.setContentsMargins(5, 5, 5, 5)
+        self.pane['preview'].body.setContentsMargins(1, 1, 1, 1)
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter.addWidget(self.pane['param'])
@@ -506,7 +653,7 @@ class Main(QtWidgets.QDialog):
         self.splitter.setCollapsible(1,False)
         self.splitter.setCollapsible(2,False)
         self.splitter.setStyleSheet("QSplitter::handle { height: 12px; }")
-        self.splitter.setContentsMargins(4, 4, 4, 4)
+        self.splitter.setContentsMargins(8, 4, 8, 4)
         self.splitter.setSizes([
             self.width()/4,
             self.width()/4,
@@ -516,12 +663,14 @@ class Main(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.header)
         layout.addWidget(self.line)
+        layout.addSpacing(8)
         layout.addWidget(self.splitter)
 
+        layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        self.setContentsMargins(5,5,5,5)
+        self.setContentsMargins(0, 0, 0, 0)
 
     def act(self):
         """Populate dialog actions"""
@@ -622,6 +771,7 @@ class Main(QtWidgets.QDialog):
             self.line.file.setText(file)
             self.analysis.file = absolute
             self.folder.clear()
+            self.stack.setCurrentWidget(self.preview)
             self.preview.clear()
         transition.onTransition = onTransition
         transition.setTargetState(self.state['idle_open'])
