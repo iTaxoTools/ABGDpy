@@ -415,8 +415,8 @@ class Main(QtWidgets.QDialog):
             'using automatic barcode gap discovery'
             )
         self.header.citation = (
-            'ABGD by G Achaz, BIONJ by Olivier Gascuel' + '\n'
-            'Python wrapper by S. Patmanidis'
+            'ABGD by G Achaz, S Brouillet, BIONJ by O Gascuel' + '\n'
+            'Python wrapper by S Patmanidis'
         )
 
         self.line = QtWidgets.QFrame()
