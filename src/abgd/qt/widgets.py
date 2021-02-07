@@ -140,6 +140,7 @@ class Header(QtWidgets.QFrame):
         """ """
         super().__init__()
 
+        self._title = None
         self._description = None
         self._citation = None
         self._logoTool = None
@@ -161,6 +162,7 @@ class Header(QtWidgets.QFrame):
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
 
         self.labelDescription = QtWidgets.QLabel('DESCRIPTION')
+        self.labelDescription.setAlignment(QtCore.Qt.AlignBottom)
         self.labelDescription.setStyleSheet("""
             color: palette(Text);
             font-size: 12px;
@@ -169,10 +171,16 @@ class Header(QtWidgets.QFrame):
             """)
 
         self.labelCitation = QtWidgets.QLabel('CITATION')
+        self.labelCitation.setAlignment(QtCore.Qt.AlignTop)
         self.labelCitation.setStyleSheet("""
             color: palette(Shadow);
             font-size: 12px;
             """)
+
+        labels = QtWidgets.QVBoxLayout()
+        labels.addWidget(self.labelDescription)
+        labels.addWidget(self.labelCitation)
+        labels.setSpacing(4)
 
         self.labelLogoTool = QtWidgets.QLabel()
         self.labelLogoTool.setAlignment(QtCore.Qt.AlignCenter)
@@ -234,17 +242,10 @@ class Header(QtWidgets.QFrame):
                 }
             """)
 
-        labels = QtWidgets.QVBoxLayout()
-        labels.addSpacing(4)
-        labels.addWidget(self.labelDescription)
-        labels.addWidget(self.labelCitation)
-        labels.addSpacing(4)
-        labels.setSpacing(4)
-
         layout = QtWidgets.QHBoxLayout()
-        layout.addSpacing(18)
+        layout.addSpacing(8)
         layout.addWidget(self.labelLogoTool)
-        layout.addSpacing(12)
+        layout.addSpacing(2)
         layout.addWidget(VLineSeparator())
         layout.addSpacing(12)
         layout.addLayout(labels, 0)
