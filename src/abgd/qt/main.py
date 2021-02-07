@@ -241,6 +241,7 @@ class Header(QtWidgets.QFrame):
                 spacing: 2px;
                 }
             QToolButton {
+                color: palette(Shadow);
                 background: transparent;
                 border: 2px solid transparent;
                 border-radius: 3px;
@@ -258,7 +259,6 @@ class Header(QtWidgets.QFrame):
                 background: palette(Midlight);
                 border: 2px solid palette(Mid);
                 border-radius: 3px;
-                color: palette(Shadow);
                 }
             """)
 
@@ -343,21 +343,21 @@ class Pane(QtWidgets.QWidget):
 
     def draw(self):
         """ """
-        # self.setStyleSheet('background: green;')
-
         self.labelTitle = QtWidgets.QLabel('TITLE GO HERE')
         self.labelTitle.setIndent(4)
         self.labelTitle.setMargin(2)
-        # self.labelTitle.setSizePolicy(
-        #     QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Ignored)
         self.labelTitle.setStyleSheet("""
             QLabel {
                 font-size: 14px;
                 font-weight: bold;
+                letter-spacing: 1px;
                 color: palette(Light);
                 background: palette(Shadow);
                 border-right: 1px solid palette(Dark);
-                border-bottom: 1px solid palette(Dark);
+                border-bottom: 2px solid palette(Dark);
+                border-bottom-left-radius: 1px;
+                border-top-right-radius: 1px;
+                padding-top: 1px;
                 }
             """)
 
@@ -981,6 +981,7 @@ class Main(QtWidgets.QDialog):
         try:
             path = pathlib.Path(item.file)
             self.pane['preview'].footer = path.name
+            self.pane['preview'].title = 'Preview - ' + path.name
             if path.suffix == '.svg':
                 self.stack.setCurrentWidget(self.graph)
                 self.graph.load(str(path))

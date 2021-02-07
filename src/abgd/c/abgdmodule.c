@@ -156,7 +156,8 @@ abgd_main(PyObject *self, PyObject *args) {
 	const char *timeSig = NULL;
 	const char *timeSig_default = "?";
 	int withlogfile=0;
-	int stdout_bak, stderr_bak;
+	int stdout_bak=-1;
+	int stderr_bak=-1;
 	int withspart=1;
 	Spart *myspar,*myspar2;
 	int **nb_subsets;
@@ -225,8 +226,13 @@ char *bout;
 		fflush(stderr);
 		stdout_bak = dup(fileno(stdout));
 		stderr_bak = dup(fileno(stderr));
-		freopen(file_name,"w",stdout);
-		dup2(fileno(stdout), fileno(stderr));
+		int fout = freopen(file_name,"w",stdout);
+		int ferr = freopen(NULL,"w",stderr);
+		int fdup = dup2(fileno(stdout), fileno(stderr));
+		if ((fout < 0) || (ferr < 0) || (fdup < 0)) {
+			PyErr_SetString(PyExc_SystemError, "abgd_main: Failed to redirect output, aborting.");
+			return NULL;
+		}
 	}
 
 	// Print these here so they are redirected if needed
@@ -680,11 +686,15 @@ if (stat(dirfiles, &stfile) == -1)
 		printf("\n---------------------------------\n");
   		}
 
-	if (withlogfile) {
+	if ((withlogfile) && (stdout_bak > 0) && (stderr_bak > 0)) {
 		fflush(stdout);
 		fflush(stderr);
-		dup2(stdout_bak, fileno(stdout));
-		dup2(stderr_bak, fileno(stderr));
+		fout = dup2(stdout_bak, fileno(stdout));
+		ferr = dup2(stderr_bak, fileno(stderr));
+		if ((fout < 0) || (ferr < 0)) {
+			PyErr_SetString(PyExc_SystemError, "abgd_main: Failed to restore output.");
+			return NULL;
+		}
 		close(stdout_bak);
 		close(stderr_bak);
 		printf("< Restored stdout/stderr\n");
