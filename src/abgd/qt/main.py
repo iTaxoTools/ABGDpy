@@ -33,26 +33,38 @@ class VPixmap(QtGui.QPixmap):
         provided dictionary `colormap`. Only fill and stroke is replaced.
         Also scales the pixmap if a QSize is provided.
         """
-        file = QtCore.QFile(fileName)
-        if not file.open(QtCore.QIODevice.ReadOnly):
-            raise FileNotFoundError('Vector resource not found: ' + fileName)
-        text = file.readAll().data().decode()
-        file.close()
+        data = self.loadAndMap(fileName, colormap)
 
-        if colormap is not None:
-            # match options fill|stroke followed by a key color
-            regex = '(?P<prefix>(fill|stroke)\:)(?P<color>' + \
-                '|'.join(map(re.escape, colormap.keys()))+')'
-            # replace just the color according to colormap
-            text = re.sub(regex, lambda mo: mo.group('prefix') + colormap[mo.group('color')], text)
-
-        renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(text.encode()))
+        renderer = QtSvg.QSvgRenderer(data)
         size = renderer.defaultSize() if size is None else size
         super().__init__(size)
         self.fill(QtCore.Qt.transparent)
         painter = QtGui.QPainter(self)
         renderer.render(painter)
         painter.end()
+
+    @staticmethod
+    def loadAndMap(fileName, colormap):
+        file = QtCore.QFile(fileName)
+        if not file.open(QtCore.QIODevice.ReadOnly):
+            raise FileNotFoundError('Vector resource not found: ' + fileName)
+        text = file.readAll().data().decode()
+        file.close()
+
+        # old code that also checks prefixes
+        # if colormap is not None:
+        #     # match options fill|stroke followed by a key color
+        #     regex = '(?P<prefix>(fill|stroke)\:)(?P<color>' + \
+        #         '|'.join(map(re.escape, colormap.keys()))+')'
+        #     # replace just the color according to colormap
+        #     print(regex)
+        #     text = re.sub(regex, lambda mo: mo.group('prefix') + colormap[mo.group('color')], text)
+
+        if colormap is not None:
+            regex = '(?P<color>' + '|'.join(map(re.escape, colormap.keys()))+')'
+            text = re.sub(regex, lambda mo: colormap[mo.group('color')], text)
+
+        return QtCore.QByteArray(text.encode())
 
 class VIcon(QtGui.QIcon):
     """A colored vector icon"""
@@ -241,7 +253,7 @@ class Header(QtWidgets.QFrame):
                 spacing: 2px;
                 }
             QToolButton {
-                color: palette(Shadow);
+                color: palette(ButtonText);
                 background: transparent;
                 border: 2px solid transparent;
                 border-radius: 3px;
@@ -378,6 +390,7 @@ class Pane(QtWidgets.QWidget):
         layout.addWidget(self.labelTitle, 0)
         layout.addLayout(self.body, 1)
         layout.addWidget(self.foot, 0)
+        layout.setSpacing(6)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(layout)
@@ -469,10 +482,11 @@ class Main(QtWidgets.QDialog):
                 QtGui.QPalette.Shadow: 'brown',
                 QtGui.QPalette.Highlight: 'red',
                 QtGui.QPalette.HighlightedText: 'white',
+                # These work on linux only?
+                QtGui.QPalette.ToolTipBase: 'beige',
+                QtGui.QPalette.ToolTipText: 'brown',
                 # These seem bugged anyway
                 QtGui.QPalette.BrightText: 'green',
-                QtGui.QPalette.ToolTipBase: 'green',
-                QtGui.QPalette.ToolTipText: 'green',
                 QtGui.QPalette.Link: 'green',
                 QtGui.QPalette.LinkVisited: 'green',
                 },
@@ -484,7 +498,7 @@ class Main(QtWidgets.QDialog):
                 QtGui.QPalette.PlaceholderText: 'green',
                 QtGui.QPalette.Text: 'iron',
                 QtGui.QPalette.Button: 'light',
-                QtGui.QPalette.ButtonText: 'iron',
+                QtGui.QPalette.ButtonText: 'gray',
                 QtGui.QPalette.Light: 'white',
                 QtGui.QPalette.Midlight: 'beige',
                 QtGui.QPalette.Mid: 'gray',
@@ -513,16 +527,31 @@ class Main(QtWidgets.QDialog):
                 '#ff0000': color['red'],
                 },
             VIcon.Disabled: {
-                '#000000': color['iron'],
+                '#000000': color['gray'],
                 '#ff0000': color['orange'],
                 },
             }
-
         self.colormap_icon =  {
             '#000000': color['black'],
             '#ff0000': color['red'],
             '#ffa500': color['pink'],
             }
+        self.colormap_graph =  {
+            'abgd': {
+                'black':   color['black'],
+                '#D82424': color['red'],
+                '#EBE448': color['gray'],
+                },
+            'disthist': {
+                'black':   color['black'],
+                '#EBE448': color['beige'],
+                },
+            'rank': {
+                'black':   color['black'],
+                '#D82424': color['red'],
+                },
+            }
+
         ResultItem.Icons['.txt'] = \
             QtGui.QIcon(VPixmap(':/icons/file-text.svg',
                 colormap=self.colormap_icon))
@@ -984,7 +1013,7 @@ class Main(QtWidgets.QDialog):
             self.pane['preview'].title = 'Preview - ' + path.name
             if path.suffix == '.svg':
                 self.stack.setCurrentWidget(self.graph)
-                self.graph.load(str(path))
+                self.graph.load(VPixmap.loadAndMap(str(path), self.colormap_graph[path.stem]))
                 self.graph.renderer().setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
             else:
                 self.stack.setCurrentWidget(self.preview)

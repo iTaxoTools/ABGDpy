@@ -226,10 +226,11 @@ char *bout;
 		fflush(stderr);
 		stdout_bak = dup(fileno(stdout));
 		stderr_bak = dup(fileno(stderr));
-		int fout = freopen(file_name,"w",stdout);
-		int ferr = freopen(NULL,"w",stderr);
-		int fdup = dup2(fileno(stdout), fileno(stderr));
-		if ((fout < 0) || (ferr < 0) || (fdup < 0)) {
+		int dout = freopen(file_name,"w",stdout);
+		int derr = freopen(NULL,"w",stderr);
+		int ddup = dup2(fileno(stdout), fileno(stderr));
+		printf("OUT %d ERR %d DUP %d",dout,derr,ddup);
+		if ((dout == NULL) || (derr == NULL) || (ddup < 0)) {
 			PyErr_SetString(PyExc_SystemError, "abgd_main: Failed to redirect output, aborting.");
 			return NULL;
 		}
@@ -689,9 +690,9 @@ if (stat(dirfiles, &stfile) == -1)
 	if ((withlogfile) && (stdout_bak > 0) && (stderr_bak > 0)) {
 		fflush(stdout);
 		fflush(stderr);
-		fout = dup2(stdout_bak, fileno(stdout));
-		ferr = dup2(stderr_bak, fileno(stderr));
-		if ((fout < 0) || (ferr < 0)) {
+		int dout = dup2(stdout_bak, fileno(stdout));
+		int derr = dup2(stderr_bak, fileno(stderr));
+		if ((dout < 0) || (derr < 0)) {
 			PyErr_SetString(PyExc_SystemError, "abgd_main: Failed to restore output.");
 			return NULL;
 		}
