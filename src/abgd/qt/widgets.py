@@ -140,6 +140,7 @@ class Header(QtWidgets.QFrame):
         """ """
         super().__init__()
 
+        self._title = None
         self._description = None
         self._citation = None
         self._logoTool = None
@@ -161,6 +162,7 @@ class Header(QtWidgets.QFrame):
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
 
         self.labelDescription = QtWidgets.QLabel('DESCRIPTION')
+        self.labelDescription.setAlignment(QtCore.Qt.AlignBottom)
         self.labelDescription.setStyleSheet("""
             color: palette(Text);
             font-size: 12px;
@@ -169,10 +171,16 @@ class Header(QtWidgets.QFrame):
             """)
 
         self.labelCitation = QtWidgets.QLabel('CITATION')
+        self.labelCitation.setAlignment(QtCore.Qt.AlignTop)
         self.labelCitation.setStyleSheet("""
             color: palette(Shadow);
             font-size: 12px;
             """)
+
+        labels = QtWidgets.QVBoxLayout()
+        labels.addWidget(self.labelDescription)
+        labels.addWidget(self.labelCitation)
+        labels.setSpacing(4)
 
         self.labelLogoTool = QtWidgets.QLabel()
         self.labelLogoTool.setAlignment(QtCore.Qt.AlignCenter)
@@ -212,19 +220,32 @@ class Header(QtWidgets.QFrame):
                 border: 2px solid palette(Mid);
                 border-radius: 3px;
                 }
+            QToolButton[popupMode="2"]:pressed {
+                padding-bottom: 5px;
+                border: 1px solid palette(Dark);
+                margin: 5px 1px 0px 1px;
+                border-bottom-right-radius: 0px;
+                border-bottom-left-radius: 0px;
+                }
+            QToolButton::menu-indicator {
+                image: none;
+                width: 30px;
+                border-bottom: 2px solid palette(Mid);
+                subcontrol-origin: padding;
+                subcontrol-position: bottom;
+                }
+            QToolButton::menu-indicator:disabled {
+                border-bottom: 2px solid palette(Midlight);
+                }
+            QToolButton::menu-indicator:pressed {
+                border-bottom: 0px;
+                }
             """)
 
-        labels = QtWidgets.QVBoxLayout()
-        labels.addSpacing(4)
-        labels.addWidget(self.labelDescription)
-        labels.addWidget(self.labelCitation)
-        labels.addSpacing(4)
-        labels.setSpacing(4)
-
         layout = QtWidgets.QHBoxLayout()
-        layout.addSpacing(18)
+        layout.addSpacing(8)
         layout.addWidget(self.labelLogoTool)
-        layout.addSpacing(12)
+        layout.addSpacing(2)
         layout.addWidget(VLineSeparator())
         layout.addSpacing(12)
         layout.addLayout(labels, 0)
@@ -304,8 +325,9 @@ class Panel(QtWidgets.QWidget):
         """Initialize internal vars"""
         super().__init__(parent=parent)
         self._title = None
-        self._warn = None
         self._foot = None
+        self._flag = None
+        self._flagTip = None
 
         # if not hasattr(parent, '_pane_foot_height'):
         #     parent._pane_foot_height = None
@@ -405,7 +427,7 @@ class Panel(QtWidgets.QWidget):
 
     @property
     def flag(self):
-        return self._warn
+        return self._flag
 
     @flag.setter
     def flag(self, flag):
@@ -414,7 +436,19 @@ class Panel(QtWidgets.QWidget):
             self.labelFlag.setVisible(True)
         else:
             self.labelFlag.setVisible(False)
-        self._warn = flag
+        self._flag = flag
+
+    @property
+    def flagTip(self):
+        return self._flagTip
+
+    @flagTip.setter
+    def flagTip(self, flagTip):
+        if flagTip is not None:
+            self.labelFlag.setToolTip(flagTip)
+        else:
+            self.labelFlag.setToolTip('')
+        self._flagTip = flagTip
 
     @property
     def footer(self):

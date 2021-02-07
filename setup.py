@@ -27,7 +27,7 @@ class CommandQtAutoCompile(Command):
         try:
             import pyqt5ac
             pyqt5ac.main(ioPaths=[
-                [str(here/'src/abgd/qt/*.qrc'), '%%DIRNAME%%/%%FILENAME%%.py'],
+                [str(here/'**/qt/*.qrc'), '%%DIRNAME%%/%%FILENAME%%.py'],
                 ])
         except ModuleNotFoundError as exception:
             raise ModuleNotFoundError('Missing Qt auto-compiler, please try: pip install pyqt5ac')
@@ -56,7 +56,7 @@ setup(
     name='abgdpy',
 
     # Versions should comply with PEP 440
-    version='0.0.1',
+    version='0.2',
 
     # This is a one-line description or tagline of what your project does
     description='A Python wrapper for ABGD',  # Optional
