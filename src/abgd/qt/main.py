@@ -469,8 +469,58 @@ class Panel(QtWidgets.QWidget):
         self.labelFoot.setText(footer)
         self._foot = footer
 
+class ToolDialog(QtWidgets.QDialog):
+    """
+    For use as the main window of a tool.
+    Handles notification sub-dialogs.
+    Asks for verification before closing.
+    """
+    def reject(self):
+        """Called on dialog close or <ESC>"""
+        if self.onReject() is not None:
+            return
+        msgBox = QtWidgets.QMessageBox(self)
+        msgBox.setWindowTitle(self.windowTitle())
+        msgBox.setIcon(QtWidgets.QMessageBox.Question)
+        msgBox.setText('Are you sure you want to quit?')
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Yes)
+        confirm = self.msgShow(msgBox)
+        if confirm == QtWidgets.QMessageBox.Yes:
+            super().reject()
 
-class Main(QtWidgets.QDialog):
+    def onReject(self):
+        """
+        Overload this to handle reject events.
+        Return None to continue with rejection, anything else to cancel.
+        """
+        return None
+
+    def msgCloseAll(self):
+        """Rejects any open QMessageBoxes"""
+        for widget in self.children():
+            if widget.__class__ == QtWidgets.QMessageBox:
+                widget.reject()
+
+    def msgShow(self, dialog):
+        """Exec given QMessageBox after closing all others"""
+        self.msgCloseAll()
+        return dialog.exec()
+
+    def fail(self, exception):
+        """Show exception dialog"""
+        msgBox = QtWidgets.QMessageBox(self)
+        msgBox.setWindowTitle(self.windowTitle())
+        msgBox.setIcon(QtWidgets.QMessageBox.Critical)
+        msgBox.setText('An exception occured:')
+        msgBox.setInformativeText(str(exception))
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Ok)
+        self.msgShow(msgBox)
+        logger = logging.getLogger()
+        logger.error(str(exception))
+
+class Main(ToolDialog):
     """Main window, handles everything"""
 
     def __init__(self, parent=None, init=None):
@@ -799,7 +849,7 @@ class Main(QtWidgets.QDialog):
 
         self.action['stop'] = QtWidgets.QAction('Stop', self)
         self.action['stop'].setIcon(VIcon(':/icons/stop.svg', self.colormap))
-        self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
+        # self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
         self.action['stop'].setToolTip('Cancel analysis')
         self.action['stop'].triggered.connect(self.handleStop)
 
@@ -903,7 +953,7 @@ class Main(QtWidgets.QDialog):
             msgBox.setText('Analysis complete.')
             msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msgBox.setDefaultButton(QtWidgets.QMessageBox.Ok)
-            msgBox.exec()
+            self.msgShow(msgBox)
         transition.onTransition = onTransition
         transition.setTargetState(self.state['idle_done'])
         self.state['running'].addTransition(transition)
@@ -931,20 +981,6 @@ class Main(QtWidgets.QDialog):
         self.machine.addState(self.state['running'])
         self.machine.setInitialState(self.state['idle'])
         self.machine.start()
-
-    def fail(self, exception):
-        # raise exception
-        # self.closeMessages()
-        msgBox = QtWidgets.QMessageBox(self)
-        msgBox.setWindowTitle(self.windowTitle())
-        msgBox.setIcon(QtWidgets.QMessageBox.Critical)
-        msgBox.setText('An exception occured:')
-        msgBox.setInformativeText(str(exception))
-        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
-        msgBox.setDefaultButton(QtWidgets.QMessageBox.Ok)
-        msgBox.exec()
-        logger = logging.getLogger()
-        logger.error(str(exception))
 
     def handleOpen(self, e, fileName=None):
         """Called by toolbar action: open"""
@@ -1009,7 +1045,7 @@ class Main(QtWidgets.QDialog):
         saveTo = ''
         if (dialog.exec()):
             saveTo = dialog.selectedFiles()[0]
-            print('SAVING TO:',saveTo)
+            print('> Saving files to folder:',saveTo)
         if len(saveTo) == 0:
             return
         save = pathlib.Path(saveTo)
@@ -1033,7 +1069,7 @@ class Main(QtWidgets.QDialog):
             msgBox.setText('Some files already exist. Overwrite?')
             msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             msgBox.setDefaultButton(QtWidgets.QMessageBox.Yes)
-            confirm = msgBox.exec()
+            confirm = self.msgShow(msgBox)
             if confirm == QtWidgets.QMessageBox.No:
                 return
 
@@ -1071,8 +1107,6 @@ class Main(QtWidgets.QDialog):
 
     def workRun(self):
         """Runs on the UProcess, defined here for pickability"""
-        # print('WORK', self.analysis.file)
-        # print('WORK', self.analysis.target)
         self.analysis.useLogfile = True
         self.analysis.run()
         # time.sleep(3)
@@ -1086,7 +1120,7 @@ class Main(QtWidgets.QDialog):
         msgBox.setText('Cancel ongoing analysis?')
         msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         msgBox.setDefaultButton(QtWidgets.QMessageBox.No)
-        confirm = msgBox.exec()
+        confirm = self.msgShow(msgBox)
         if confirm == QtWidgets.QMessageBox.Yes:
             self.launcher.quit()
             self.machine.postEvent(utility.NamedEvent('CANCEL'))
@@ -1118,6 +1152,14 @@ class Main(QtWidgets.QDialog):
         except Exception as exception:
             self.fail(exception)
             return
+
+    def onReject(self):
+        """If running, verify cancel"""
+        if self.state['running'] in list(self.machine.configuration()):
+            self.handleStop()
+            return True
+        else:
+            return None
 
 def show(sys):
     """Entry point"""
