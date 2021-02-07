@@ -27,7 +27,7 @@ class CommandQtAutoCompile(Command):
         try:
             import pyqt5ac
             pyqt5ac.main(ioPaths=[
-                [str(here/'src/abgd/qt/*.qrc'), '%%DIRNAME%%/%%FILENAME%%.py'],
+                [str(here/'**/qt/*.qrc'), '%%DIRNAME%%/%%FILENAME%%.py'],
                 ])
         except ModuleNotFoundError as exception:
             raise ModuleNotFoundError('Missing Qt auto-compiler, please try: pip install pyqt5ac')
