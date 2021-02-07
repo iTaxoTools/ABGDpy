@@ -237,7 +237,6 @@ class Main(widgets.ToolDialog):
     def draw(self):
         """Draw all widgets"""
         self.header = widgets.Header()
-        self.header.title = self.title
         self.header.logoTool = widgets.VectorPixmap(':/icons/abgd-logo.svg',
             colormap=self.colormap_icon)
         self.header.logoProject = QtGui.QPixmap(':/icons/itaxotools-micrologo.png')
@@ -258,7 +257,7 @@ class Main(widgets.ToolDialog):
         self.line.icon.setStyleSheet('border-style: none;')
 
         self.line.file = QtWidgets.QLineEdit()
-        self.line.file.setPlaceholderText('Open a file to start')
+        self.line.file.setPlaceholderText('Open a file to begin')
         self.line.file.setReadOnly(True)
         self.line.file.setStyleSheet("""
             QLineEdit {
@@ -281,7 +280,6 @@ class Main(widgets.ToolDialog):
         self.pane = {}
 
         self.paramWidget = param_qt.ParamContainer(self.analysis.param, doc=False)
-        # self.paramWidget.setStyleSheet("background: blue;")
         self.paramWidget.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         self.paramWidget.setContentsMargins(0, 0, 0, 0)
@@ -461,10 +459,22 @@ class Main(widgets.ToolDialog):
 
         state = self.state['idle_updated']
         def onEntry(event):
-            self.pane['param'].flag = 'CHANGED'
+            tip = ( 'Parameters have changed,\n' +
+                    're-run analysis to update results.')
+            self.pane['param'].flag = '*'
+            self.pane['list'].flag = '*'
+            self.pane['preview'].flag = '*'
+            self.pane['param'].flagTip = tip
+            self.pane['list'].flagTip = tip
+            self.pane['preview'].flagTip = tip
         state.onEntry = onEntry
         def onExit(event):
             self.pane['param'].flag = None
+            self.pane['list'].flag = None
+            self.pane['preview'].flag = None
+            self.pane['param'].flagTip = None
+            self.pane['list'].flagTip = None
+            self.pane['preview'].flagTip = None
         state.onExit = onExit
 
         transition = utility.NamedTransition('OPEN')

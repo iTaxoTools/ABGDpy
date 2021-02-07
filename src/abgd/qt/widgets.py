@@ -212,6 +212,26 @@ class Header(QtWidgets.QFrame):
                 border: 2px solid palette(Mid);
                 border-radius: 3px;
                 }
+            QToolButton[popupMode="2"]:pressed {
+                padding-bottom: 5px;
+                border: 1px solid palette(Dark);
+                margin: 5px 1px 0px 1px;
+                border-bottom-right-radius: 0px;
+                border-bottom-left-radius: 0px;
+                }
+            QToolButton::menu-indicator {
+                image: none;
+                width: 30px;
+                border-bottom: 2px solid palette(Mid);
+                subcontrol-origin: padding;
+                subcontrol-position: bottom;
+                }
+            QToolButton::menu-indicator:disabled {
+                border-bottom: 2px solid palette(Midlight);
+                }
+            QToolButton::menu-indicator:pressed {
+                border-bottom: 0px;
+                }
             """)
 
         labels = QtWidgets.QVBoxLayout()
@@ -304,8 +324,9 @@ class Panel(QtWidgets.QWidget):
         """Initialize internal vars"""
         super().__init__(parent=parent)
         self._title = None
-        self._warn = None
         self._foot = None
+        self._flag = None
+        self._flagTip = None
 
         # if not hasattr(parent, '_pane_foot_height'):
         #     parent._pane_foot_height = None
@@ -405,7 +426,7 @@ class Panel(QtWidgets.QWidget):
 
     @property
     def flag(self):
-        return self._warn
+        return self._flag
 
     @flag.setter
     def flag(self, flag):
@@ -414,7 +435,19 @@ class Panel(QtWidgets.QWidget):
             self.labelFlag.setVisible(True)
         else:
             self.labelFlag.setVisible(False)
-        self._warn = flag
+        self._flag = flag
+
+    @property
+    def flagTip(self):
+        return self._flagTip
+
+    @flagTip.setter
+    def flagTip(self, flagTip):
+        if flagTip is not None:
+            self.labelFlag.setToolTip(flagTip)
+        else:
+            self.labelFlag.setToolTip('')
+        self._flagTip = flagTip
 
     @property
     def footer(self):
