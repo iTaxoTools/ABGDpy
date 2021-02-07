@@ -10,8 +10,6 @@ import multiprocessing
 import ctypes
 import threading
 
-from . import utility
-
 ##############################################################################
 ### Logging
 
