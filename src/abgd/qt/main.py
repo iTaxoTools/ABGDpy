@@ -338,19 +338,21 @@ class Header(QtWidgets.QFrame):
         self.labelLogoProject.logo = logo
 
 
-class Pane(QtWidgets.QWidget):
+class Panel(QtWidgets.QWidget):
     """
-
+    A stylized panel with title, footer and body.
+    Set `self.title`, `self.footer` and `self.flag` with text.
+    Use `self.body.addWidget()`` to populate the pane.
     """
     def __init__(self, parent):
-        """
-        """
+        """Initialize internal vars"""
         super().__init__(parent=parent)
         self._title = None
+        self._warn = None
         self._foot = None
 
-        if not hasattr(parent, '_pane_foot_height'):
-            parent._pane_foot_height = None
+        # if not hasattr(parent, '_pane_foot_height'):
+        #     parent._pane_foot_height = None
         self.draw()
 
     def draw(self):
@@ -369,27 +371,68 @@ class Pane(QtWidgets.QWidget):
                 border-bottom: 2px solid palette(Dark);
                 border-bottom-left-radius: 1px;
                 border-top-right-radius: 1px;
-                padding-top: 1px;
+                padding-top: 2px;
+                }
+            QLabel:disabled {
+                background: palette(Mid);
+                border-right: 1px solid palette(Midlight);
+                border-bottom: 2px solid palette(Midlight);
                 }
             """)
 
+        self.labelFlag = QtWidgets.QLabel('')
+        self.labelFlag.setVisible(False)
+        self.labelFlag.setIndent(4)
+        self.labelFlag.setMargin(2)
+        self.labelFlag.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                font-weight: bold;
+                letter-spacing: 1px;
+                color: palette(Light);
+                background: palette(Mid);
+                border-right: 1px solid palette(Midlight);
+                border-bottom: 2px solid palette(Midlight);
+                border-bottom-left-radius: 1px;
+                border-top-right-radius: 1px;
+                padding-top: 1px;
+                }
+            QLabel:disabled {
+                background: palette(Midlight);
+                border-right: 1px solid palette(Light);
+                border-bottom: 2px solid palette(Light);
+                }
+            """)
+
+        # To be filled by user
         self.body = QtWidgets.QVBoxLayout()
 
         self.labelFoot = QtWidgets.QLabel('FOOTER')
         self.labelFoot.setAlignment(QtCore.Qt.AlignCenter)
+        self.labelFoot.setStyleSheet("""
+            QLabel {
+                color: palette(Shadow);
+                background: palette(Window);
+                border: 1px solid palette(Mid);
+                padding: 5px 10px 5px 10px;
+                }
+            QLabel:disabled {
+                color: palette(Mid);
+                background: palette(Window);
+                border: 1px solid palette(Mid);
+                }
+            """)
 
-        layoutFlags = QtWidgets.QHBoxLayout()
-        layoutFlags.addWidget(self.labelFoot)
-        layoutFlags.setContentsMargins(0, 0, 0, 0)
-        self.foot = QtWidgets.QGroupBox()
-        self.foot.setLayout(layoutFlags)
-        self.foot.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
+
+        layoutTop = QtWidgets.QHBoxLayout()
+        layoutTop.addWidget(self.labelTitle, 1)
+        layoutTop.addWidget(self.labelFlag, 0)
+        layoutTop.setSpacing(4)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.labelTitle, 0)
+        layout.addLayout(layoutTop, 0)
         layout.addLayout(self.body, 1)
-        layout.addWidget(self.foot, 0)
+        layout.addWidget(self.labelFoot, 0)
         layout.setSpacing(6)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -405,10 +448,23 @@ class Pane(QtWidgets.QWidget):
         self._title = title
 
     @property
+    def flag(self):
+        return self._warn
+
+    @flag.setter
+    def flag(self, flag):
+        if flag is not None:
+            self.labelFlag.setText(flag)
+            self.labelFlag.setVisible(True)
+        else:
+            self.labelFlag.setVisible(False)
+        self._warn = flag
+
+    @property
     def footer(self):
         return self._foot
 
-    @title.setter
+    @footer.setter
     def footer(self, footer):
         self.labelFoot.setText(footer)
         self._foot = footer
@@ -431,7 +487,7 @@ class Main(QtWidgets.QDialog):
 
         self.setWindowTitle(self.title)
         self.setWindowIcon(QtGui.QIcon(':/icons/pyr8s-icon.png'))
-        self.resize(854,480)
+        self.resize(1024,480)
 
         self.machine = None
         self.skin()
@@ -536,6 +592,11 @@ class Main(QtWidgets.QDialog):
             '#ff0000': color['red'],
             '#ffa500': color['pink'],
             }
+        self.colormap_icon_light =  {
+            '#000000': color['iron'],
+            '#ff0000': color['red'],
+            '#ffa500': color['pink'],
+            }
         self.colormap_graph =  {
             'abgd': {
                 'black':   color['black'],
@@ -598,7 +659,7 @@ class Main(QtWidgets.QDialog):
 
         self.line.icon = QtWidgets.QLabel()
         self.line.icon.setPixmap(VPixmap(':/icons/arrow-right.svg',
-            colormap=self.colormap_icon))
+            colormap=self.colormap_icon_light))
         self.line.icon.setStyleSheet('border-style: none;')
 
         self.line.file = QtWidgets.QLineEdit()
@@ -629,8 +690,10 @@ class Main(QtWidgets.QDialog):
         self.paramWidget.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         self.paramWidget.setContentsMargins(0, 0, 0, 0)
+        self.paramWidget.paramChanged.connect(
+            lambda e: self.machine.postEvent(utility.NamedEvent('UPDATE')))
 
-        self.pane['param'] = Pane(self)
+        self.pane['param'] = Panel(self)
         self.pane['param'].title = 'Parameters'
         self.pane['param'].footer = 'Hover parameters for tips'
         self.pane['param'].body.addWidget(self.paramWidget)
@@ -643,7 +706,7 @@ class Main(QtWidgets.QDialog):
         self.folder.setStyleSheet("ResultView::item {padding: 2px;}")
         self.folder.setAlternatingRowColors(True)
 
-        self.pane['list'] = Pane(self)
+        self.pane['list'] = Panel(self)
         self.pane['list'].title = 'Files'
         self.pane['list'].footer = 'Nothing to show'
         self.pane['list'].body.addWidget(self.folder)
@@ -655,17 +718,24 @@ class Main(QtWidgets.QDialog):
             QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
         self.preview.setReadOnly(True)
 
-        self.graph = QtSvg.QSvgWidget()
+        self.graphSvg = QtSvg.QSvgWidget()
+
+        self.graph = QtWidgets.QFrame()
         self.graph.setStyleSheet("""
-            background-color: palette(Base);
-            border: 1px solid palette(Mid);
+            QFrame {
+                background-color: palette(Base);
+                border: 1px solid palette(Mid);
+                }
             """)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.graphSvg)
+        self.graph.setLayout(layout)
 
         self.stack = QtWidgets.QStackedLayout()
         self.stack.addWidget(self.preview)
         self.stack.addWidget(self.graph)
 
-        self.pane['preview'] = Pane(self)
+        self.pane['preview'] = Panel(self)
         self.pane['preview'].title = 'Preview'
         self.pane['preview'].footer = 'Nothing to show'
         self.pane['preview'].body.addLayout(self.stack)
@@ -743,6 +813,7 @@ class Main(QtWidgets.QDialog):
         self.state['idle_none'] = QtCore.QState(self.state['idle'])
         self.state['idle_open'] = QtCore.QState(self.state['idle'])
         self.state['idle_done'] = QtCore.QState(self.state['idle'])
+        self.state['idle_updated'] = QtCore.QState(self.state['idle'])
         self.state['idle_last'] = QtCore.QHistoryState(self.state['idle'])
         self.state['idle'].setInitialState(self.state['idle_none'])
         self.state['running'] = QtCore.QState()
@@ -757,7 +828,7 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.action['run'], 'enabled', False)
         state.assignProperty(self.action['save'], 'enabled', False)
         state.assignProperty(self.paramWidget.container, 'enabled', False)
-        state.assignProperty(self.pane['param'].foot, 'enabled', False)
+        state.assignProperty(self.pane['param'], 'enabled', False)
         state.assignProperty(self.pane['list'], 'enabled', False)
         state.assignProperty(self.pane['list'].labelFoot, 'text', 'Nothing to show')
         state.assignProperty(self.pane['preview'], 'enabled', False)
@@ -766,7 +837,7 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.action['run'], 'enabled', True)
         state.assignProperty(self.action['save'], 'enabled', False)
         state.assignProperty(self.paramWidget.container, 'enabled', True)
-        state.assignProperty(self.pane['param'].foot, 'enabled', True)
+        state.assignProperty(self.pane['param'], 'enabled', True)
         state.assignProperty(self.pane['list'], 'enabled', False)
         state.assignProperty(self.pane['list'].labelFoot, 'text', 'Nothing to show')
         state.assignProperty(self.pane['preview'], 'enabled', False)
@@ -775,10 +846,13 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.action['run'], 'enabled', True)
         state.assignProperty(self.action['save'], 'enabled', True)
         state.assignProperty(self.paramWidget.container, 'enabled', True)
-        state.assignProperty(self.pane['param'].foot, 'enabled', True)
+        state.assignProperty(self.pane['param'], 'enabled', True)
         state.assignProperty(self.pane['list'], 'enabled', True)
         state.assignProperty(self.pane['list'].labelFoot, 'text', 'Double-click for preview')
         state.assignProperty(self.pane['preview'], 'enabled', True)
+        def onEntry(event):
+            self.splitter.setSizes([1, 1, -1])
+        state.onEntry = onEntry
 
         state = self.state['running']
         state.assignProperty(self.action['run'], 'visible', False)
@@ -786,9 +860,17 @@ class Main(QtWidgets.QDialog):
         state.assignProperty(self.action['open'], 'enabled', False)
         state.assignProperty(self.action['save'], 'enabled', False)
         state.assignProperty(self.paramWidget.container, 'enabled', False)
-        state.assignProperty(self.pane['param'].foot, 'enabled', False)
+        state.assignProperty(self.pane['param'], 'enabled', False)
         state.assignProperty(self.pane['list'], 'enabled', False)
         state.assignProperty(self.pane['preview'], 'enabled', False)
+
+        state = self.state['idle_updated']
+        def onEntry(event):
+            self.pane['param'].flag = 'UPDATED'
+        state.onEntry = onEntry
+        def onExit(event):
+            self.pane['param'].flag = None
+        state.onExit = onExit
 
         transition = utility.NamedTransition('OPEN')
         def onTransition(event):
@@ -825,6 +907,10 @@ class Main(QtWidgets.QDialog):
         transition.onTransition = onTransition
         transition.setTargetState(self.state['idle_done'])
         self.state['running'].addTransition(transition)
+
+        transition = utility.NamedTransition('UPDATE')
+        transition.setTargetState(self.state['idle_updated'])
+        self.state['idle_done'].addTransition(transition)
 
         transition = utility.NamedTransition('FAIL')
         def onTransition(event):
@@ -1013,8 +1099,8 @@ class Main(QtWidgets.QDialog):
             self.pane['preview'].title = 'Preview - ' + path.name
             if path.suffix == '.svg':
                 self.stack.setCurrentWidget(self.graph)
-                self.graph.load(VPixmap.loadAndMap(str(path), self.colormap_graph[path.stem]))
-                self.graph.renderer().setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
+                self.graphSvg.load(VPixmap.loadAndMap(str(path), self.colormap_graph[path.stem]))
+                self.graphSvg.renderer().setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
             else:
                 self.stack.setCurrentWidget(self.preview)
                 self.preview.clear()
