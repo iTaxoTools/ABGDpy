@@ -1,6 +1,7 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
   <qresource>
+    <file>icons/abgd-icon-transparent.ico</file>
     <file>icons/itaxotools-micrologo.png</file>
     <file>icons/abgd-logo.svg</file>
     <file>icons/placeholder.svg</file>

@@ -226,11 +226,13 @@ char *bout;
 		fflush(stderr);
 		stdout_bak = dup(fileno(stdout));
 		stderr_bak = dup(fileno(stderr));
-		int dout = freopen(file_name,"w",stdout);
-		int derr = freopen(NULL,"w",stderr);
+		FILE *dout = freopen(file_name,"w",stdout);
+		#ifdef _WIN32
+		// Open stderr or else dup2 will fail for windowed app
+		FILE *derr = freopen("NUL:","w",stderr);
+		#endif
 		int ddup = dup2(fileno(stdout), fileno(stderr));
-		printf("OUT %d ERR %d DUP %d",dout,derr,ddup);
-		if ((dout == NULL) || (derr == NULL) || (ddup < 0)) {
+		if ((dout == NULL) || (ddup < 0)) {
 			PyErr_SetString(PyExc_SystemError, "abgd_main: Failed to redirect output, aborting.");
 			return NULL;
 		}
@@ -687,7 +689,7 @@ if (stat(dirfiles, &stfile) == -1)
 		printf("\n---------------------------------\n");
   		}
 
-	if ((withlogfile) && (stdout_bak > 0) && (stderr_bak > 0)) {
+	if ((withlogfile) && !(stdout_bak < 0) && !(stderr_bak < 0)) {
 		fflush(stdout);
 		fflush(stderr);
 		int dout = dup2(stdout_bak, fileno(stdout));

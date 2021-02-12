@@ -91,7 +91,7 @@ class Main(widgets.ToolDialog):
         self.temp = None
 
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QtGui.QIcon(':/icons/pyr8s-icon.png'))
+        self.setWindowIcon(QtGui.QIcon(':/icons/abgd-icon-transparent.ico'))
         self.resize(1024,480)
 
         self.machine = None
