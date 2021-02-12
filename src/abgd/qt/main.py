@@ -21,7 +21,7 @@ from ..param import qt as param_qt
 
 from . import utility
 from . import widgets
-from . import icons
+from . import resources
 
 
 class ResultItem(QtWidgets.QListWidgetItem):
@@ -89,7 +89,7 @@ class Main(widgets.ToolDialog):
         self.temp = None
 
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QtGui.QIcon(':/icons/abgd-icon-transparent.ico'))
+        self.setWindowIcon(QtGui.QIcon(':/resources/abgd-icon-transparent.ico'))
         self.resize(1024,480)
 
         self.machine = None
@@ -217,27 +217,27 @@ class Main(widgets.ToolDialog):
             }
 
         ResultItem.Icons['.txt'] = \
-            QtGui.QIcon(widgets.VectorPixmap(':/icons/file-text.svg',
+            QtGui.QIcon(widgets.VectorPixmap(':/resources/file-text.svg',
                 colormap=self.colormap_icon))
         ResultItem.Icons['.svg'] = \
-            QtGui.QIcon(widgets.VectorPixmap(':/icons/file-graph.svg',
+            QtGui.QIcon(widgets.VectorPixmap(':/resources/file-graph.svg',
                 colormap=self.colormap_icon))
         ResultItem.Icons['.log'] = \
-            QtGui.QIcon(widgets.VectorPixmap(':/icons/file-log.svg',
+            QtGui.QIcon(widgets.VectorPixmap(':/resources/file-log.svg',
                 colormap=self.colormap_icon))
         ResultItem.Icons['.spart'] = \
-            QtGui.QIcon(widgets.VectorPixmap(':/icons/file-spart.svg',
+            QtGui.QIcon(widgets.VectorPixmap(':/resources/file-spart.svg',
                 colormap=self.colormap_icon))
         ResultItem.Icons['.tree'] = \
-            QtGui.QIcon(widgets.VectorPixmap(':/icons/file-tree.svg',
+            QtGui.QIcon(widgets.VectorPixmap(':/resources/file-tree.svg',
                 colormap=self.colormap_icon))
 
     def draw(self):
         """Draw all widgets"""
         self.header = widgets.Header()
-        self.header.logoTool = widgets.VectorPixmap(':/icons/abgd-logo.svg',
+        self.header.logoTool = widgets.VectorPixmap(':/resources/abgd-logo.svg',
             colormap=self.colormap_icon)
-        self.header.logoProject = QtGui.QPixmap(':/icons/itaxotools-micrologo.png')
+        self.header.logoProject = QtGui.QPixmap(':/resources/itaxotools-micrologo.png')
         self.header.description = (
             'Primary species delimitation' + '\n'
             'using automatic barcode gap discovery'
@@ -250,7 +250,7 @@ class Main(widgets.ToolDialog):
         self.line = widgets.Subheader()
 
         self.line.icon = QtWidgets.QLabel()
-        self.line.icon.setPixmap(widgets.VectorPixmap(':/icons/arrow-right.svg',
+        self.line.icon.setPixmap(widgets.VectorPixmap(':/resources/arrow-right.svg',
             colormap=self.colormap_icon_light))
         self.line.icon.setStyleSheet('border-style: none;')
 
@@ -367,7 +367,7 @@ class Main(widgets.ToolDialog):
         self.action = {}
 
         self.action['open'] = QtWidgets.QAction('&Open', self)
-        self.action['open'].setIcon(widgets.VectorIcon(':/icons/open.svg', self.colormap))
+        self.action['open'].setIcon(widgets.VectorIcon(':/resources/open.svg', self.colormap))
         self.action['open'].setShortcut(QtGui.QKeySequence.Open)
         self.action['open'].setToolTip((
             'Open an aligned fasta file or a distance matrix\n'
@@ -375,7 +375,7 @@ class Main(widgets.ToolDialog):
         self.action['open'].triggered.connect(self.handleOpen)
 
         self.action['save'] = QtWidgets.QAction('&Save', self)
-        self.action['save'].setIcon(widgets.VectorIcon(':/icons/save.svg', self.colormap))
+        self.action['save'].setIcon(widgets.VectorIcon(':/resources/save.svg', self.colormap))
         self.action['save'].setShortcut(QtGui.QKeySequence.Save)
         self.action['save'].setToolTip((
             'Save files with a prefix of your choice\n'
@@ -383,13 +383,13 @@ class Main(widgets.ToolDialog):
         self.action['save'].triggered.connect(self.handleSave)
 
         self.action['run'] = QtWidgets.QAction('&Run', self)
-        self.action['run'].setIcon(widgets.VectorIcon(':/icons/run.svg', self.colormap))
+        self.action['run'].setIcon(widgets.VectorIcon(':/resources/run.svg', self.colormap))
         self.action['run'].setShortcut('Ctrl+R')
         self.action['run'].setToolTip('Run ABGD analysis')
         self.action['run'].triggered.connect(self.handleRun)
 
         self.action['stop'] = QtWidgets.QAction('Stop', self)
-        self.action['stop'].setIcon(widgets.VectorIcon(':/icons/stop.svg', self.colormap))
+        self.action['stop'].setIcon(widgets.VectorIcon(':/resources/stop.svg', self.colormap))
         # self.action['stop'].setShortcut(QtGui.QKeySequence.Cancel)
         self.action['stop'].setToolTip('Cancel analysis')
         self.action['stop'].triggered.connect(self.handleStop)
@@ -542,8 +542,7 @@ class Main(widgets.ToolDialog):
             (fileName, _) = QtWidgets.QFileDialog.getOpenFileName(self,
                 self.title + ' - Open File',
                 str(pathlib.Path.cwd()),
-                'All Files (*)',
-                options=QtWidgets.QFileDialog.DontUseNativeDialog)
+                'All Files (*)')
         if len(fileName) == 0:
             return
         core.BarcodeAnalysis(fileName)
@@ -568,6 +567,7 @@ class Main(widgets.ToolDialog):
             'Selected files (*)': fromSelection,
             'Spart files (*.spart)': fromFilter('*.spart'),
             'Partition files (*.txt)': fromFilter('*.txt'),
+            'Tree files (*.tree)': fromFilter('*.tree'),
             'Vector Graphics (*.svg)': fromFilter('*.svg'),
             'Log files (*.log)': fromFilter('*.log'),
             }
@@ -579,10 +579,6 @@ class Main(widgets.ToolDialog):
         dialog.setDirectory(str(path.parent))
         dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
         dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dialog.setOptions(
-            QtWidgets.QFileDialog.DontResolveSymlinks |
-            QtWidgets.QFileDialog.DontUseNativeDialog
-            )
         dialog.setNameFilters(nameFiltersWithSelectors.keys())
 
         # Disable file selection
@@ -638,14 +634,12 @@ class Main(widgets.ToolDialog):
         try:
             self.paramWidget.applyParams()
             self._temp = tempfile.TemporaryDirectory(prefix='abgd_')
-            self.analysis.target = self._temp.name
-            # print('RUN', self.analysis.target)
+            self.analysis.target = pathlib.Path(self._temp.name).as_posix()
         except Exception as exception:
             self.fail(exception)
             return
 
         def done(result):
-            # print('DONE', result)
             self.temp = self._temp
             self.analysis.results = result
             self.machine.postEvent(utility.NamedEvent('DONE', True))

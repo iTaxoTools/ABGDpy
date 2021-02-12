@@ -1,0 +1,20 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource>
+    <file>resources/abgd-icon-transparent.ico</file>
+    <file>resources/itaxotools-micrologo.png</file>
+    <file>resources/abgd-logo.svg</file>
+    <file>resources/placeholder.svg</file>
+    <file>resources/open.svg</file>
+    <file>resources/save.svg</file>
+    <file>resources/run.svg</file>
+    <file>resources/stop.svg</file>
+    <file>resources/arrow-right.svg</file>
+    <file>resources/file-graph.svg</file>
+    <file>resources/file-text.svg</file>
+    <file>resources/file-spart.svg</file>
+    <file>resources/file-tree.svg</file>
+    <file>resources/file-log.svg</file>
+  </qresource>
+  <!-- Auto-compile resource module: python setup.py build_qt -->
+</RCC>

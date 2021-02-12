@@ -56,7 +56,7 @@ setup(
     name='abgdpy',
 
     # Versions should comply with PEP 440
-    version='0.2',
+    version='0.2.1',
 
     # This is a one-line description or tagline of what your project does
     description='A Python wrapper for ABGD',  # Optional

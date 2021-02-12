@@ -30,4 +30,4 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False,
-          icon='src/abgd/qt/icons/abgd-icon.ico' )
+          icon='src/abgd/qt/resources/abgd-icon.ico' )
