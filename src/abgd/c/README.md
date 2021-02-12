@@ -2,6 +2,7 @@
 This is a module that wraps ABGD for use with Python.
 
 Original ABGD:	https://bioinfo.mnhn.fr/abi/public/abgd/
+
 Source code:	https://bioinfo.mnhn.fr/abi/public/abgd/last.tgz
 
 
@@ -52,7 +53,6 @@ The original ABGD code was also slightly altered for the cross-platform wrapper 
 -- Accept a Python dictionary object as a single argument
 -- Change variable `dirfiles` into a `const char`
 -- Replace some `exit(1)` occurences with Python exceptions
--- Fetch and use module global `separator` for all pathnames
 -- No longer prefix output files with input basename
 -- Add option for stdout/stderr redirection to a file
 

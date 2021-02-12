@@ -89,8 +89,6 @@ abgd_main(PyObject *self, PyObject *args) {
 
 	PyObject *dict;
 	PyObject *item;
-	const char *separator_str = NULL;
-	char separator;
 
 	const char *file = NULL;
 	const char *dirfiles = NULL;
@@ -184,13 +182,6 @@ char *bout;
 	verbose=0;
 
 
-	if (parseItem(PyModule_GetDict(self), "separator", 's', &separator_str)) return NULL;
-	if (!separator_str) {
-		PyErr_SetString(PyExc_TypeError, "abgd_main: Module global not found: 'separator'");
-		return NULL;
-	}
-	separator = separator_str[0];
-
 	// Accept a dictionary-like python object
 	if (!PyArg_ParseTuple(args, "O", &dict))
 		return NULL;
@@ -220,7 +211,7 @@ char *bout;
 	if (parseItem(dict, "logfile", 'b', &withlogfile)) return NULL;
 
 	if (withlogfile) {
-		sprintf(file_name,"%s%cabgd.log",dirfiles,separator);
+		sprintf(file_name,"%s/abgd.log",dirfiles);
 		printf("> Redirecting stdout/stderr to file: %s\n", file_name);
 		fflush(stdout);
 		fflush(stderr);
@@ -239,7 +230,6 @@ char *bout;
 	}
 
 	// Print these here so they are redirected if needed
-	printf("> separator = %c\n", separator);
 	printf("> file = %s\n", file);
 	printf("> dirfiles = %s\n", dirfiles);
 	printf("> withlogfile = %i\n", withlogfile);
@@ -288,8 +278,8 @@ char *bout;
 
 	//check that dirfiles ends by a '/' otherwise may have some pb
 
-	if (strrchr(file,separator))
-		sprintf(dataFilename,"%s",strrchr(file,separator)+1);
+	if (strrchr(file,'/'))
+		sprintf(dataFilename,"%s",strrchr(file,'/')+1);
 	else
 		sprintf(dataFilename,"%s",file);
 	if (strrchr(dataFilename,'.'))
@@ -408,7 +398,7 @@ if (stat(dirfiles, &stfile) == -1)
 	mask=(char*)malloc( distmat.n*sizeof(char) );
 	if(!mask)fprintf(stderr, "main: cannot allocate mask, bye<BR>\n");
 	if (verbose)fprintf(stderr,"Writing histogram files\n");
-	sprintf(file_name,"%s%c",dirfiles,separator);
+	sprintf(file_name,"%s/",dirfiles);
  	createSVGhisto(file_name,distmat,nbbids);
 	if (verbose)fprintf(stderr," histogram Done\nBegining ABGD--->\n");
 
@@ -479,11 +469,11 @@ if (stat(dirfiles, &stfile) == -1)
 		if (withallfiles)
 			{
 
-			sprintf(file_name,"%s%cpartinit.%d.txt",dirfiles,separator,myD+1);
+			sprintf(file_name,"%s/partinit.%d.txt",dirfiles,myD+1);
 			fout=fopen(file_name,"w");
 			if (fout==NULL)
 				printf("problem opening result file %s\n",file_name), exit(1);
-			sprintf(file_name,"%s%cpartinit.%d.tree",dirfiles,separator,myD+1);
+			sprintf(file_name,"%s/partinit.%d.tree",dirfiles,myD+1);
 			f2=fopen(file_name,"w");
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
 
@@ -494,7 +484,7 @@ if (stat(dirfiles, &stfile) == -1)
 			}
 		else if(notreefile)
 			{
-			sprintf(file_name,"%s%cpartinit.%d.txt",dirfiles,separator,myD+1);
+			sprintf(file_name,"%s/partinit.%d.txt",dirfiles,myD+1);
 			fout=fopen(file_name,"w");
 
 			if (fout==NULL)
@@ -596,13 +586,13 @@ if (stat(dirfiles, &stfile) == -1)
 
 		if (withallfiles){
 
-			sprintf(file_name,"%s%cpart.%d.txt",dirfiles,separator,myD+1);
+			sprintf(file_name,"%s/part.%d.txt",dirfiles,myD+1);
 			fout=fopen(file_name,"w");
 
 			if (fout==NULL)
 				printf("problem opening result file %s\n",file_name), exit(1);
 
-			sprintf(file_name,"%s%cpart.%d.tree",dirfiles,separator,myD+1);
+			sprintf(file_name,"%s/part.%d.tree",dirfiles,myD+1);
 			f2=fopen(file_name,"w");
 
 			print_groups_files_newick( comp ,  distmat ,  fout,newickString  ,f2,0,stdout,"");
@@ -618,7 +608,7 @@ if (stat(dirfiles, &stfile) == -1)
 		}
 		else if(notreefile)
 		{
-		sprintf(file_name,"%s%cpart.%d.txt",dirfiles,separator,myD+1);
+		sprintf(file_name,"%s/part.%d.txt",dirfiles,myD+1);
 		fout=fopen(file_name,"w");
 
 		if (fout==NULL)
@@ -649,25 +639,25 @@ if (stat(dirfiles, &stfile) == -1)
 	else
 		{
 
-		sprintf(file_name,"%s%cabgd.svg",dirfiles,separator);
+		sprintf(file_name,"%s/abgd.svg",dirfiles);
 		if(verbose) fprintf(stderr,"writing graphx file\n");
 		CreateGraphFiles(mySpecies, specInit,myDist, myD, ledir, meth, file_name);   /* go for a nice piece of draw */
 		if(verbose) fprintf(stderr,"writing graphx file done\n");
 		printf("\n---------------------------------\n");
 		printf("\nGraphic files (SVG):\n");
-		printf("Summary: %s%c%s.abgd.svg\n",dirfiles,separator,simplename);
-		printf("Distance histogram: %s%c%s.disthist.svg\n",dirfiles,separator,simplename);
-		printf("Rank distance: %s%c%s.rank.svg\n",dirfiles,separator,simplename);
+		printf("Summary: %s/%s.abgd.svg\n",dirfiles,simplename);
+		printf("Distance histogram: %s/%s.disthist.svg\n",dirfiles,simplename);
+		printf("Rank distance: %s/%s.rank.svg\n",dirfiles,simplename);
 
 		if (withallfiles)
 			{
 			printf("\n%d Text Files are resuming your work:\n",myD*4);
 			printf("Description of %d different init/recursives partitions in:\n",myD*2);
 			for (c=0;c<myD;c++)
-				printf("%s%c%s.[partinit/part].%d.txt\n",dirfiles,separator,simplename,c+1);
+				printf("%s/%s.[partinit/part].%d.txt\n",dirfiles,simplename,c+1);
 			printf("Description of %d newick trees in from init/recursives partition:\n",myD*2);
 			for (c=0;c<myD;c++)
-				printf("%s%c%s.[partinit/part].%d.tree\n",dirfiles,separator,simplename,c+1);
+				printf("%s/%s.[partinit/part].%d.tree\n",dirfiles,simplename,c+1);
 			}
 		else
 		if (notreefile)
@@ -675,7 +665,7 @@ if (stat(dirfiles, &stfile) == -1)
 			printf("\n%d Text Files are resuming your work:\n",myD*2);
 			printf("Description of %d different init/recursives partitions in:\n",myD*2);
 			for (c=0;c<myD;c++)
-				printf("%s%c%s.[partinit/part].%d.txt\n",dirfiles,separator,simplename,c+1);
+				printf("%s/%s.[partinit/part].%d.txt\n",dirfiles,simplename,c+1);
 
 			}
 
@@ -683,7 +673,7 @@ if (stat(dirfiles, &stfile) == -1)
 			{
 			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
 			printf("\nSpart files (%d real steps)\n",nbreal);
-			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,timeSig,fres,separator,meth,minSlopeIncrease,bcod);
+			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,timeSig,fres,'/',meth,minSlopeIncrease,bcod);
 			}
 
 		printf("\n---------------------------------\n");

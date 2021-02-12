@@ -23,8 +23,6 @@ from . import utility
 from . import widgets
 from . import icons
 
-core.abgdc.separator = os.path.sep
-
 
 class ResultItem(QtWidgets.QListWidgetItem):
     """
@@ -487,6 +485,7 @@ class Main(widgets.ToolDialog):
             self.line.file.setText(file)
             self.analysis.file = absolute
             self.folder.clear()
+            self.pane['preview'].title = 'Preview'
             self.stack.setCurrentWidget(self.preview)
             self.preview.clear()
         transition.onTransition = onTransition

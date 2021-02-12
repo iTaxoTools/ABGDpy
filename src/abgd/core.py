@@ -26,7 +26,8 @@ class BarcodeAnalysis():
         self.useLogfile = False
         self.target = None
         self.results = None
-        self.time_format = '%x - %I:%M%p'
+        # self.time_format = '%x - %I:%M%p'
+        self.time_format = '%FT%T'
         with importlib.resources.open_text(__package__, 'params.json') as data:
             self.param = param.ParamList(data)
 
