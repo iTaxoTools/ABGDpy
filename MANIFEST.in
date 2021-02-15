@@ -2,4 +2,4 @@ include README.md
 include LICENSE.rst
 include setup.py
 
-include src/abgd/params.json
+include src/abgdpy/params.json

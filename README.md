@@ -28,7 +28,7 @@ $ abgdpy tests/test.fas
 
 ## Launch without installing
 
-Before the first time you use the program, you must install required modules, build the ABGD core and auto-compile the Qt resource files:
+Before the first time you use the program, you must install any required modules, build the ABGD core and auto-compile the Qt resource files:
 ```
 $ pip install -r requirements.txt
 $ python setup.py build_ext --inplace
@@ -42,17 +42,25 @@ $ python launcher.py
 
 ## Packaging
 
-You must first compile the ABGD module,
+You must first compile the ABGD C module, auto-compile Qt resources,
 then use PyInstaller on the launcher **spec** file:
 ```
 $ pip install pyinstaller
 $ python setup.py build_ext --inplace
+$ python setup.py build_qt
 $ pyinstaller launcher.spec
 ```
 
 ## Module
 
 You may import and use the ABGD module in your python scripts.
+
+To launch the GUI:
+```
+>>> import abgdpy.qt
+>>> abgdpy.qt.main.show()
+```
+
 More examples to follow soon.
 
 ### Python interactive example

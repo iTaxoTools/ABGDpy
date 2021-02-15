@@ -9,7 +9,7 @@ def main():
     # force spawning on linux for debugging
     # multiprocessing.set_start_method('spawn')
     if len(sys.argv) <= 2:
-        a = qt_main.show(sys)
+        a = qt_main.show()
     else:
         print('Usage: abgd-qt FILE')
         print('Ex:    abgd-qt tests/test.fas')

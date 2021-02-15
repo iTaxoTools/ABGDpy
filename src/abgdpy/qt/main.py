@@ -710,7 +710,7 @@ class Main(widgets.ToolDialog):
         else:
             return None
 
-def show(sys):
+def show():
     """Entry point"""
     def init():
         if len(sys.argv) >= 2:

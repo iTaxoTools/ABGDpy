@@ -38,13 +38,13 @@ class build_py(_build_py):
         self.run_command('build_qt')
         _build_py.run(self)
 
-abgdmodule = Extension('abgd.abgdc',
-                    include_dirs = ['src/abgd/c'],
+abgdmodule = Extension('abgdpy.abgdc',
+                    include_dirs = ['src/abgdpy/c'],
                     sources = [
-                        'src/abgd/c/abgdmodule.c',
-                        'src/abgd/c/abgdCore.c',
-                        'src/abgd/c/bionjcabgd.c',
-                        'src/abgd/c/main_abgd.c',
+                        'src/abgdpy/c/abgdmodule.c',
+                        'src/abgdpy/c/abgdCore.c',
+                        'src/abgdpy/c/bionjcabgd.c',
+                        'src/abgdpy/c/main_abgd.c',
                         ])
 
 # Get the long description from the README file
@@ -204,8 +204,8 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
         'console_scripts': [
-            'abgdpy=abgd.run:main',
-            'abgdpy-qt=abgd.qt.run:main',
+            'abgdpy=abgdpy.run:main',
+            'abgdpy-qt=abgdpy.qt.run:main',
         ],
     },
 

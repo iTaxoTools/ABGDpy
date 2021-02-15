@@ -5,7 +5,7 @@ block_cipher = None
 # Could also use pyinstaller's Entrypoint()
 a = Analysis(['launcher.py'],
              binaries=[],
-             datas=[('src/abgd', 'src/abgd')],
+             datas=[('src/abgdpy', 'src/abgdpy')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -30,4 +30,4 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False,
-          icon='src/abgd/qt/resources/abgd-icon.ico' )
+          icon='src/abgdpy/qt/resources/abgd-icon.ico' )
