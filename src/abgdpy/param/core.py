@@ -21,7 +21,7 @@ Access field documentation:
 >>> param.general['scalar'].doc
 """
 
-#! Default dict is ordered in Python 3.7+, no need for OrderedDict
+# Default dict is ordered in Python3.7+, but we use Python3.6
 from collections import OrderedDict
 import json
 
@@ -120,12 +120,13 @@ class ParamList(OrderedDict):
     def __dir__(self):
         return list(self.keys())
 
-    def __init__(self, data):
+    def __init__(self, dictionary=None, json_data=None):
         super().__init__()
-        if data is None:
-            return
-        dictionary = json.load(data, object_pairs_hook=OrderedDict)
+        if json_data is not None:
+            dictionary = json.load(json_data, object_pairs_hook=OrderedDict)
         #dictionary = json.load(data)
+        if dictionary is None:
+            return
         for k in dictionary.keys():
             self[k] = ParamCategory(dictionary[k])
 

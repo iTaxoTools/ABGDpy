@@ -1,4 +1,4 @@
-{
+params = {
   "general": {
     "label": "General",
     "fields": {
@@ -6,25 +6,25 @@
         "label":    "MEGA CVS",
         "doc":      "If True, the distance Matrix is supposed to be MEGA CVS\n(other formats are guessed).",
         "type":     "bool",
-        "default":  false
+        "default":  False
       },
       "spart": {
         "label":    "Generate Spart",
         "doc":      "Generate Spart files.",
         "type":     "bool",
-        "default":  true
+        "default":  True
       },
       "simple": {
         "label":    "Generate Partitions",
         "doc":      "Generate partition files.",
         "type":     "bool",
-        "default":  true
+        "default":  True
       },
       "all": {
         "label":    "Generate Trees",
         "doc":      "Generate all partitions and tree files.",
         "type":     "bool",
-        "default":  false
+        "default":  False
       }
     }
   },
