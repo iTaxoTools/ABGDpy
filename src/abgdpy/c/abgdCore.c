@@ -1058,7 +1058,23 @@ else
 dest[i]='\0';
 
 }
+void strcpy_spart_simp(char *dest,char *chaine)
+{
 
+
+int l=strlen(chaine),i,j;
+if (strstr(chaine,".txt")!=NULL)
+	l=l-4;
+
+for (i=0,j=0;i<l;i++)
+if (isalnum(chaine[i]) || (chaine[i]=='_'))
+	dest[i]=chaine[i];
+else
+	dest[i]='_';
+
+dest[i]='\0';
+
+}
 
 /*some functions to output fonctions in various ways: file, html , stdout*/
 void print_groups( struct Composante my_comp , struct DistanceMatrix distmat  ){
@@ -1100,34 +1116,36 @@ void print_groups_files( struct Composante my_comp , struct DistanceMatrix distm
 
 //see pb with user dir for abgd CL
 
-void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char separator,char *meth,float slope,double *bcode)
+void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char *workdir,char *meth,float slope,double *bcode)
 {
 	int i,j,k;
 	FILE *f;
-	char *names[2]={"abgd.spart","abgd_rec.spart"};
+	char *names[2]={"spart","rec.spart"};
 	char *type[2]={"init","rec"};
 	char lename[512];
-
+	char proj[1024];
 
 	for (j=0;j<2;j++)
 	{
+		strcpy_spart_simp(proj,dataFilename);
 
-		sprintf(lename,"%s%c%s",ledir,separator,names[j]);
+		sprintf(lename,"%s%s/%s.%s",workdir,ledir,proj,names[j]);
 
 
-		fprintf(stdout,"%s\n",lename);
+		fprintf(stderr,"PARTFILE: %s******\n",lename);
 		f=fopen(lename,"w");
 		if (f==NULL) {fprintf(fres,"%s not opened",lename);fclose (fres);exit_properly(ledir);}
 		//printf("------>%s\n",lename);
 		fprintf(f,"begin spart;\n");
-		fprintf(f,"Project_name = %s;\n",dataFilename);
+		//strcpy_spart_simp(proj,dataFilename);
+		fprintf(f,"Project_name = %s;\n",proj);
 		fprintf(f,"Date = %s;\n",ladate);
 		fprintf(f,"N_spartitions = %d : ",nbstepABGD);
 		for (i=0;i<nbstepABGD-1;i++)
 		{
-			fprintf(f,"%s_abgd_%s_%d / ",dataFilename,type[j],i+1);
+			fprintf(f,"%s_abgd_%s_%d / ",proj,type[j],i+1);
 		}
-		fprintf(f,"%s_abgd_%s_%d;\n",dataFilename,type[j],i+1);
+		fprintf(f,"%s_abgd_%s_%d;\n",proj,type[j],i+1);
 		fprintf(f,"N_individuals = ");
 		for (i=0;i<nbstepABGD-1;i++)
 		{

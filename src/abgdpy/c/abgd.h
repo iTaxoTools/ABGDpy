@@ -83,7 +83,7 @@ void distanceJC69 (struct FastaSeq *,int l,struct  DistanceMatrix  mymat,FILE *f
 
 int comparaison(const void *v1, const void *v2);
 
-void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char separator,char *meth,float slope,double *bcode);
+void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres,char *workdir,char *meth,float slope,double *bcode);
 
 //void CreateSpartFile(Spart *myspar,Spart *myspar2,char *ledir,int nbstepABGD,char *dataFilename,int **sub,int nbSamples,char *ladate,FILE *fres, char *w);
 void exit_properly(char *ledir);
@@ -107,6 +107,7 @@ void free_distmat(  struct DistanceMatrix mat );
 void print_distmat(  struct DistanceMatrix distmat  );
 struct DistanceMatrix  read_fasta_and_compute_dis(char *input,int method,float ts_tv,FILE *fres,char *ledir);
 void strcpy_spart(char *chaine,char *dest);
+void strcpy_spart_simp(char *dest,char *chaine);
 int callabgd (	double minDist,
 				double MaxDist,
 				int nbStepsABGD,

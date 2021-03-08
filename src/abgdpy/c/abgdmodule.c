@@ -154,8 +154,10 @@ abgd_main(PyObject *self, PyObject *args) {
 	const char *timeSig = NULL;
 	const char *timeSig_default = "?";
 	int withlogfile=0;
-	int stdout_bak=-1;
-	int stderr_bak=-1;
+	int stdout_bak = -1;
+	int stderr_bak = -1;
+	fpos_t stdout_pos;
+	fpos_t stderr_pos;
 	int withspart=1;
 	Spart *myspar,*myspar2;
 	int **nb_subsets;
@@ -213,8 +215,13 @@ char *bout;
 	if (withlogfile) {
 		sprintf(file_name,"%s/abgd.log",dirfiles);
 		printf("> Redirecting stdout/stderr to file: %s\n", file_name);
+		printf("BEFORE REDIRECT: \n");
+		printf("stdout %d\n", stdout);
+		printf("stderr %d\n", stderr);
 		fflush(stdout);
 		fflush(stderr);
+		fgetpos(stdout, &stdout_pos);
+		fgetpos(stderr, &stderr_pos);
 		stdout_bak = dup(fileno(stdout));
 		stderr_bak = dup(fileno(stderr));
 		FILE *dout = freopen(file_name,"w",stdout);
@@ -223,6 +230,12 @@ char *bout;
 		FILE *derr = freopen("NUL:","w",stderr);
 		#endif
 		int ddup = dup2(fileno(stdout), fileno(stderr));
+		printf("AFTER REDIRECT: \n");
+		printf("stdout %d\n", stdout);
+		printf("stderr %d\n", stderr);
+		printf("ddup %d\n", ddup);
+		printf("stdout_bak %p\n", stdout_bak);
+		printf("stderr_bak %p\n", stderr_bak);
 		if ((dout == NULL) || (ddup < 0)) {
 			PyErr_SetString(PyExc_SystemError, "abgd_main: Failed to redirect output, aborting.");
 			return NULL;
@@ -673,7 +686,7 @@ if (stat(dirfiles, &stfile) == -1)
 			{
 			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
 			printf("\nSpart files (%d real steps)\n",nbreal);
-			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,timeSig,fres,'/',meth,minSlopeIncrease,bcod);
+			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,timeSig,fres,"",meth,minSlopeIncrease,bcod);
 			}
 
 		printf("\n---------------------------------\n");
@@ -684,13 +697,19 @@ if (stat(dirfiles, &stfile) == -1)
 		fflush(stderr);
 		int dout = dup2(stdout_bak, fileno(stdout));
 		int derr = dup2(stderr_bak, fileno(stderr));
+		close(stdout_bak);
+		close(stderr_bak);
+		clearerr(stdout);
+		clearerr(stderr);
+		fsetpos(stdout, &stdout_pos);
+		fsetpos(stderr, &stderr_pos);
 		if ((dout < 0) || (derr < 0)) {
 			PyErr_SetString(PyExc_SystemError, "abgd_main: Failed to restore output.");
 			return NULL;
 		}
-		close(stdout_bak);
-		close(stderr_bak);
 		printf("< Restored stdout/stderr\n");
+		fflush(stdout);
+		fflush(stderr);
 	}
 
 
