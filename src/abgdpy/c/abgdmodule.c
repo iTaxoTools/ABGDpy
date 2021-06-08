@@ -352,7 +352,7 @@ if (stat(dirfiles, &stfile) == -1)
 	else
 		distmat = read_distmat(f,ts_tv,fmeg);
 
-	printf("ok\n");
+	// printf("ok\n");
 
 		myspar=malloc(sizeof(Spart)*distmat.n);
 		myspar2=malloc(sizeof(Spart)*distmat.n);
@@ -564,7 +564,7 @@ if (stat(dirfiles, &stfile) == -1)
 
 						if( recursive_comp.nc > 1 ){
 
-							if(verbose){
+							/*if(verbose){
 
 								printf("Subsequent partition %s\n", (verbose)?"":"(details with -v)" );
 								printf("theta_hat  : %g\n", recursive_abgd.theta_hat );
@@ -577,7 +577,7 @@ if (stat(dirfiles, &stfile) == -1)
 							//	print_groups( recursive_comp, distmat );
 								printf("\n");
 
-							}
+							}*/
 
 							update_composante(  &comp, a, recursive_comp );
 
@@ -596,7 +596,7 @@ if (stat(dirfiles, &stfile) == -1)
 
 
 
-		//bcod[myD]=recursive_abgd.Dist;
+		bcod[myD]=recursive_abgd.Dist;
 		printf("Partition %d : %d / %d groups with / out recursion for P= %f\n",  myD+1, comp.nc,ncomp_primary, MaxDist );
 		fflush(stdout);
 
@@ -673,39 +673,33 @@ if (stat(dirfiles, &stfile) == -1)
 		if(verbose) fprintf(stderr,"writing graphx file done\n");
 		printf("\n---------------------------------\n");
 		printf("\nGraphic files (SVG):\n");
-		printf("Summary: %s/%s.abgd.svg\n",dirfiles,simplename);
-		printf("Distance histogram: %s/%s.disthist.svg\n",dirfiles,simplename);
-		printf("Rank distance: %s/%s.rank.svg\n",dirfiles,simplename);
+		printf("- Summary: %s/abgd.svg\n",dirfiles);
+		printf("- Distance histogram: %s/disthist.svg\n",dirfiles);
+		printf("- Rank distance: %s/rank.svg\n",dirfiles);
 
-		if (withallfiles)
-			{
-			printf("\n%d Text Files are resuming your work:\n",myD*4);
-			printf("Description of %d different init/recursives partitions in:\n",myD*2);
-			for (c=0;c<myD;c++)
-				printf("%s/%s.[partinit/part].%d.txt\n",dirfiles,simplename,c+1);
-			printf("Description of %d newick trees in from init/recursives partition:\n",myD*2);
-			for (c=0;c<myD;c++)
-				printf("%s/%s.[partinit/part].%d.tree\n",dirfiles,simplename,c+1);
-			}
-		else
-		if (notreefile)
-					{
-			printf("\n%d Text Files are resuming your work:\n",myD*2);
-			printf("Description of %d different init/recursives partitions in:\n",myD*2);
-			for (c=0;c<myD;c++)
-				printf("%s/%s.[partinit/part].%d.txt\n",dirfiles,simplename,c+1);
+		nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
+		if (withallfiles) {
+			printf("\n%d Text Files summarize your work:\n",2+(nbreal*4));
+			printf("- Description of %d different init/recursives partitions in:\n",nbreal*2);
+			printf("  %s/[partinit/part].[1-%d].txt\n",dirfiles,nbreal);
+			printf("- Description of %d newick trees in from init/recursives partition:\n",nbreal*2);
+			printf("  %s/[partinit/part].[1-%d].tree\n",dirfiles,nbreal);
+		}
+		else if (notreefile) {
+			printf("\n%d Text Files summarize your work:\n",2+(nbreal*4));
+			printf("- Description of %d different init/recursives partitions in:\n",nbreal*2);
+			printf("  %s/[partinit/part].[1-%d].txt\n",dirfiles,nbreal);
+		}
 
-			}
-
-		if (withspart)
-			{
-			nbreal=((myD-1) < nbStepsABGD)? myD-1 : nbStepsABGD;
-			printf("\nSpart files (%d real steps)\n",nbreal);
+		if (withspart) {
+			printf("\nTwo spart files summarize your partitions:\n");
+			printf("- %s/%s.spart\n",dirfiles,simplename);
+			printf("- %s/%s.rec.spart\n",dirfiles,simplename);
 			CreateSpartFile(myspar,myspar2,dirfiles,nbreal,dataFilename,nb_subsets,distmat.n,timeSig,fres,"",meth,minSlopeIncrease,bcod);
-			}
+		}
 
 		printf("\n---------------------------------\n");
-  		}
+	}
 
 	if ((withlogfile) && !(stdout_bak < 0) && !(stderr_bak < 0)) {
 		fflush(stdout);

@@ -249,7 +249,7 @@ long ppos;
 	while (1)
 		{
 		ligne=my_get_line(ligne,f_in,&nbcharmax);
-
+		if(strncmp(ligne,"Table,",5)==0 || feof(f_in)) break;
 		if (strlen(ligne)>2)
 			{nb++;}
 
@@ -704,9 +704,9 @@ char chaine [12];
 
 			}
 	}
-	printf("sorting distances\n");
+	// printf("sorting distances\n");
 	qsort(histocum, nbcomp,sizeof(float),myCompare);
-	printf("sorting distances done\n");
+	// printf("sorting distances done\n");
 
 	intervalle=maxi/(float)nbbids;
 	k=0;
@@ -778,7 +778,7 @@ for (i=0;i<nbbids;i++)
 	fprintf(svgout,"</svg>\n");
 	fclose(svgout);
 
-printf("first plot done\n");
+// printf("first plot done\n");
 
 
 	//now draw the rank hist
@@ -844,7 +844,7 @@ printf("first plot done\n");
 
 	free(histo);
 
-printf("second plot done\n");
+// printf("second plot done\n");
 }
 
 
