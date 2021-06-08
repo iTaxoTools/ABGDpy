@@ -100,9 +100,9 @@ int parseItem(PyObject *dict, const char *str, const char t, void *var) {
 }
 
 static PyObject *
-abgd_main(PyObject *self, PyObject *args) {
+abgd_main(PyObject *self, PyObject *args, PyObject *kwargs) {
 
-	PyObject *dict;
+	PyObject *dict = kwargs;
 	PyObject *item;
 
 	const char *file = NULL;
@@ -198,22 +198,7 @@ char *bout;
 	DEBUG=0;
 	verbose=0;
 
-
-	// Accept a dictionary-like python object
-	if (!PyArg_ParseTuple(args, "O", &dict))
-		return NULL;
-	if (!PyDict_Check(dict)) {
-		PyErr_SetString(PyExc_TypeError, "abgd_main: Argument must be a dictionary");
-		return NULL;
-	}
-
-	if (parseItem(dict, "file", 's', &file)) return NULL;
-
-	if (!file) {
-		PyErr_SetString(PyExc_KeyError, "abgd_main: Mandatory key: 'file'");
-		return NULL;
-	}
-
+	if (!PyArg_ParseTuple(args, "s", &file)) return NULL;
 	f=fopen(file,"r");
 	if (f==NULL) {
 		PyErr_Format(PyExc_FileNotFoundError, "abgd_main: Input file not found: '%s'", file);
@@ -754,48 +739,9 @@ if (stat(dirfiles, &stfile) == -1)
 	return Py_None;
 }
 
-static PyObject *
-abgd_foo(PyObject *self, PyObject *args)
-{
-  long num, res;
-
-  if (!PyArg_ParseTuple(args, "l", &num))
-      return NULL;
-  res = num + 42;
-  return PyLong_FromLong(res);
-}
-
-static PyObject *
-abgd_foo2(PyObject *self, PyObject *args)
-{
-  const char *dir;
-
-  if (!PyArg_ParseTuple(args, "s", &dir))
-      return NULL;
-	printf("foo dir = %s\n", dir);
-
-	char file_name[128];
-	sprintf(file_name,"%s/foo.bar", dir);
-	printf("foo file_name = %s\n", file_name);
-
-	FILE *file;
-	file=fopen(file_name,"w");
-	if (file != NULL)
-	{
-	fprintf(stderr,"Matrix dist is written as distmat.txt\n");
-	fprintf(file,"BARBARA\n");
-	fclose (file);
-	}
-  return PyLong_FromLong(1);
-}
-
 static PyMethodDef AbgdMethods[] = {
-  {"main",  abgd_main, METH_VARARGS,
+  {"main",  abgd_main, METH_VARARGS | METH_KEYWORDS,
    "Run ABGD for given parameters."},
-  {"foo",  abgd_foo, METH_VARARGS,
-   "Add 42."},
-  {"foo2",  abgd_foo2, METH_VARARGS,
-   "Write temp file."},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -812,7 +758,7 @@ static struct PyModuleDef abgdmodule = {
 };
 
 PyMODINIT_FUNC
-PyInit_abgdc(void)
+PyInit_abgd(void)
 {
 	PyObject *m = NULL;
   m = PyModule_Create(&abgdmodule);

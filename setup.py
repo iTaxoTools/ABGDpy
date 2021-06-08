@@ -32,14 +32,17 @@ class build_py(_build_py):
         self.run_command('build_qt')
         _build_py.run(self)
 
-abgdmodule = Extension('abgdpy.abgdc',
-                    include_dirs = ['src/abgdpy/c'],
-                    sources = [
-                        'src/abgdpy/c/abgdmodule.c',
-                        'src/abgdpy/c/abgdCore.c',
-                        'src/abgdpy/c/bionjcabgd.c',
-                        'src/abgdpy/c/main_abgd.c',
-                        ])
+abgdmodule = Extension('abgdpy.abgd',
+        include_dirs = ['src/abgd'],
+        define_macros = [
+            ('ismodule', '1')
+            ],
+        sources = [
+            'src/abgd/abgdmodule.c',
+            'src/abgd/abgdCore.c',
+            'src/abgd/bionjcabgd.c',
+            'src/abgd/main_abgd.c',
+            ])
 
 # Get the long description from the README file
 long_description = (here / 'README.md').read_text(encoding='utf-8')

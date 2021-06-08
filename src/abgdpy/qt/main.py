@@ -98,9 +98,10 @@ class Main(widgets.ToolDialog):
     def __init__(self, parent=None, init=None):
         super(Main, self).__init__(parent)
 
-        logging.getLogger().setLevel(logging.DEBUG)
+        self.logger = logging.getLogger('iTaxotools.ABGDpy')
+        self.logger.setLevel(logging.DEBUG)
         handler = logging.StreamHandler(sys.stdout)
-        logging.getLogger().addHandler(handler)
+        self.logger.addHandler(handler)
 
         self.title = 'ABGDpy'
         self.analysis = core.BarcodeAnalysis(None)

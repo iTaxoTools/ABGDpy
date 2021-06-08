@@ -1,4 +1,4 @@
 from .core import BarcodeAnalysis, launch
-from . import abgdc
+from . import abgd
 
 import os

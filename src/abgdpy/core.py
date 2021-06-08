@@ -23,7 +23,7 @@ import tempfile
 import shutil
 from datetime import datetime
 
-from . import abgdc
+from . import abgd
 from . import param
 from . import params
 
@@ -63,13 +63,11 @@ class BarcodeAnalysis():
         save results to a temporary directory.
         """
         kwargs = self.param.as_dictionary()
-        kwargs['file'] = self.file
         kwargs['logfile'] = self.useLogfile
         kwargs['time'] = datetime.now().strftime(self.time_format)
         if self.target is not None:
             kwargs['out'] = self.target
-        print(kwargs)
-        abgdc.main(kwargs)
+        abgd.main(self.file, **kwargs)
         self.results = self.target
 
 

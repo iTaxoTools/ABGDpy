@@ -1,0 +1,139 @@
+
+This is a module that wraps ABGD for use with Python.
+
+Original ABGD:	https://bioinfo.mnhn.fr/abi/public/abgd/
+
+Source code:	https://bioinfo.mnhn.fr/abi/public/abgd/last.tgz
+
+
+## Arguments (TBA)
+
+Usage example: abgd.main('test.fas', all=True)
+
+The first argument must be the input file.
+The following keyword arguments are checked:
+
+- file:		accepted formats: fasta alignment, phylip distance file, MEGA distance file (see below)
+- out:		existent directory where results files are written
+- method:	distance (0: Kimura-2P, 1: Jukes-Cantor --default--, 3: simple distance)
+- bids:		number of bids for graphic histogram of distances (default is 20)
+- steps:	number of steps in [Pmin,Pmax] (default is 10)
+- min:		minimal a priori value (default is 0.001) -Pmin-
+- max:		maximal a priori value (default is 0.1) -Pmax-lt is 20)
+- slope:	minimum Slope Increase (default is 1.5)
+- rate:		transition/transversion (for Kimura 3-P distance) default:2.0
+- mega:		if True, the distance Matrix is supposed to be MEGA CVS (other formats are guessed)
+- all:		output all partitions and tree files (default only graph files)
+- verbose:	verbose mode (outputs a lot of values)
+- simple:		option for only groups
+- logfile:	redirect and save stdout/stderr to file
+- spart:		create spart files
+
+## Warning
+
+This module often uses exit() to abort in case of error, shutting down the whole Python process that called it.
+It is also possible that allocated memory is not freed in such cases. For this reason,
+it is recommended to run abgd.main() on its own subprocess.
+To verify that no errors occured, check that the process exitcode is 0.
+
+## Changes
+
+The original ABGD code was slightly altered for the cross-platform wrapper to compile.
+Here follows a *noncomprehensive* list of changes:
+
+- Add `main_abgd.h`: header file exposing `main_abgd.c` functions, used by `abgdmodule.c/abgd_main`
+- Conditional header includes: `strings.h` `unistd.h` `dirent.h`: linux-only libraries
+- Disable function: `abgdCore.c/print_groups_newick`: used non-standard `strcasestr`, function not called anywhere
+- Edit function: `main_abgd.c/readMatrixMega`: used non-standard `strcasestr`: replaced with `toupper` and `strstr`
+
+- Main functionality moved from `main_abgd.c/main()` to `abgdmodule.c/abgd_main` with the following changes:
+-- Accept Python arguments
+-- Replace `bzero` with `memset`
+-- Change variable `dirfiles` into a `const char`
+-- Replace some `exit(1)` occurences with Python exceptions
+-- No longer prefix output files with input basename
+-- Add option for stdout/stderr redirection to a file
+-- Other changes in structure and output (see file)
+
+diff -w ABGD/abgdCore.c ABGDpy/src/abgd/abgdCore.c
+41,42d40
+< #include <unistd.h>
+< #include <strings.h>
+45d42
+< #include <dirent.h>
+1082,1083d1078
+<
+<
+1210d1204
+<
+1445a1440,1442
+> 	// Not called anywhere, uses non-standard strcasestr
+> 	printf("print_groups_newick is commented out\n");
+> 	exit(1);
+1446a1444
+> /*
+1476c1474
+<
+---
+> */
+
+
+diff -w ABGD/main_abgd.c ABGDpy/src/abgd/main_abgd.c
+40,41d39
+< #include <unistd.h>
+< #include <strings.h>
+44d41
+< #include <dirent.h>
+48a46,50
+> #ifndef _WIN32
+> #include <unistd.h>
+> #include <strings.h>
+> #include <dirent.h>
+> #endif
+360,361c362
+< 	while (1)
+< 		 {
+---
+> 	while (1) {
+363a365,370
+> 		char *s = ligne;
+> 		while (*s) {
+> 			*s = toupper((unsigned char) *s);
+> 			s++;
+> 		}
+>
+366c373
+< 		 	if (strcasestr(ligne," of Taxa :") !=NULL)
+---
+> 	 	if (strstr(ligne," OF TAXA :") !=NULL)
+369,370c376,377
+< 			if (strcasestr(ligne,"NTaxa=") !=NULL)
+< 				my_mat->n=atoi(strchr(strcasestr(ligne,"NTaxa="),'=')+1);
+---
+> 		if (strstr(ligne,"NTAXA=") !=NULL)
+> 			my_mat->n=atoi(strchr(strstr(ligne,"NTAXA="),'=')+1);
+372c379
+< 			if (strcasestr(ligne,"DataFormat=")!=NULL)
+---
+> 		if (strstr(ligne,"DATAFORMAT=")!=NULL)
+374c381
+< 				if (strcasestr(ligne,"Lowerleft")!=NULL)
+---
+> 			if (strstr(ligne,"LOWERLEFT")!=NULL)
+377c384
+< 					if (strcasestr(ligne,"upperright")!=NULL)
+---
+> 				if (strstr(ligne,"UPPERRIGHT")!=NULL)
+679c686
+< 	sprintf(filename,"%s.disthist.svg",file);
+---
+> 	sprintf(filename,"%sdisthist.svg",file);
+783c790
+< 	sprintf(filename,"%s.rank.svg",file);
+---
+> 	sprintf(filename,"%srank.svg",file);
+1113a1121,1122
+> #ifndef ismodule
+>
+1720a1730
+> #endif
