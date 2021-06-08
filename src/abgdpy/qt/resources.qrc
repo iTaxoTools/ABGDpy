@@ -3,7 +3,7 @@
   <qresource>
     <file>resources/abgd-icon-transparent.ico</file>
     <file>resources/itaxotools-micrologo.png</file>
-    <file>resources/abgd-logo.svg</file>
+    <file>resources/logo-abgd.svg</file>
     <file>resources/placeholder.svg</file>
     <file>resources/open.svg</file>
     <file>resources/save.svg</file>
