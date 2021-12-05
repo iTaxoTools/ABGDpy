@@ -3,8 +3,8 @@ params = {
     "label": "General",
     "fields": {
       "mega": {
-        "label":    "MEGA CVS",
-        "doc":      "If True, the distance Matrix is supposed to be MEGA CVS\n(other formats are guessed).",
+        "label":    "MEGA CSV",
+        "doc":      "If True, the distance Matrix is supposed to be MEGA CSV\n(other formats are guessed).",
         "type":     "bool",
         "default":  False
       },

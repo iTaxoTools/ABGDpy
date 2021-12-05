@@ -22,7 +22,7 @@ The following keyword arguments are checked:
 - max:		maximal a priori value (default is 0.1) -Pmax-lt is 20)
 - slope:	minimum Slope Increase (default is 1.5)
 - rate:		transition/transversion (for Kimura 3-P distance) default:2.0
-- mega:		if True, the distance Matrix is supposed to be MEGA CVS (other formats are guessed)
+- mega:		if True, the distance Matrix is supposed to be MEGA CSV (other formats are guessed)
 - all:		output all partitions and tree files (default only graph files)
 - verbose:	verbose mode (outputs a lot of values)
 - simple:		option for only groups
@@ -45,7 +45,7 @@ Here follows a *noncomprehensive* list of changes:
 - Conditional header includes: `strings.h` `unistd.h` `dirent.h`: linux-only libraries
 - Disable function: `abgdCore.c/print_groups_newick`: used non-standard `strcasestr`, function not called anywhere
 - Edit function: `main_abgd.c/readMatrixMega`: used non-standard `strcasestr`: replaced with `toupper` and `strstr`
-
+- All mentions of "CVS" were changed to "CSV"
 - Main functionality moved from `main_abgd.c/main()` to `abgdmodule.c/abgd_main` with the following changes:
 -- Accept Python arguments
 -- Replace `bzero` with `memset`

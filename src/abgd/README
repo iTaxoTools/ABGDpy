@@ -24,7 +24,7 @@ If you are in a hurry and want as soon as possible to see abgd working, just typ
 ./abgd -h
 will give you this help
 
-		-m	  : if present the distance Matrix is supposed to be MEGA CVS (other formats are guessed)
+		-m	  : if present the distance Matrix is supposed to be MEGA CSV (other formats are guessed)
 		-a	  : output all partitions and tree files (default only graph files)
 		-v	  : verbose mode (outputs a lot of values)
 		-p #  : minimal a priori value (default is 0.001) -Pmin-
@@ -74,7 +74,7 @@ Gascuel O. Molecular Biology and Evolution. 1997 14:685-695
 Two MEGA distance files are read:
 
 *********
-CVS file (default MEGA 5)  formated as follows:
+CSV file (default MEGA 5)  formated as follows:
 [name 1],,
 [name 2],##,,
 ...

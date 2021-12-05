@@ -175,7 +175,7 @@ switch (nb)
     break;
 
   	case 105:
-	fprintf(fres,"Either you have a CVS MEGA matrix and didn't check the option in previous page, <BR>either your matrix is not well formated\n");
+	fprintf(fres,"Either you have a CSV MEGA matrix and didn't check the option in previous page, <BR>either your matrix is not well formated\n");
     break;
 
 	case 110:

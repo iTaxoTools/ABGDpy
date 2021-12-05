@@ -8,7 +8,7 @@ struct DistanceMatrix compute_dis(FILE *f,int method,float ts_tv);
 int myIndex(char *l, char c);
 char *my_get_line(char *ligne,FILE *f_in,int *nbcharmax);
 void remplace(char *name,char c,char newc);
-void readMatrixMegaCVS(FILE *f_in,struct DistanceMatrix *my_mat);
+void readMatrixMegaCSV(FILE *f_in,struct DistanceMatrix *my_mat);
 void readMatrixMega(FILE *f_in,struct DistanceMatrix *my_mat);
 struct DistanceMatrix read_distmat(FILE *f_in,float ts_tv,int fmeg);
 int myCompare(const void *v1, const void *v2);

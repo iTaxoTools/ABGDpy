@@ -237,8 +237,8 @@ while (name[i]!='\0')
 
 
 
-/*Read CVS mega matrix which is the default for MEGA 5*/
-void readMatrixMegaCVS(FILE *f_in,struct DistanceMatrix *my_mat)
+/*Read CSV mega matrix which is the default for MEGA 5*/
+void readMatrixMegaCSV(FILE *f_in,struct DistanceMatrix *my_mat)
 {
 int nb=0,a,b,c;
 int nbcharmax=NBCHARMALLOC,to_alloc=0;
@@ -247,7 +247,7 @@ long ppos;
 //float ff;
 //long posit;
 
-	printf("CVS MEGA FILE\n");fflush(stdout);
+	printf("CSV MEGA FILE\n");fflush(stdout);
 	ligne=(char *)malloc(sizeof(char)*nbcharmax);
 	*ligne='\0';
 
@@ -325,7 +325,7 @@ for (a=0;a<my_mat->n;a++){
 	while (letter != 10  && letter!=13 && letter !='\n'&& !feof(f_in))/* go to end of line*/
 		{letter=fgetc(f_in);}
 	if (feof(f_in) && b!=a)
-		printf("%d %d pb reading matrix CVS\n",a,b),exit(1);
+		printf("%d %d pb reading matrix CSV\n",a,b),exit(1);
 
 	}
 //for (a=0;a<my_mat->n;a++)
@@ -509,7 +509,7 @@ for (a=0;a<my_mat->n;a++){
 		while (letter != 10  && letter != ']'  && letter!=13 && letter !='\n'&& !feof(f_in))/* go to end of line*/
 			{letter=fgetc(f_in);}
 		if (a!=my_mat->n -1 && feof(f_in))
-			printf("pb reading matrix CVS\n"),exit(1);
+			printf("pb reading matrix CSV\n"),exit(1);
 
 	}
 
@@ -540,7 +540,7 @@ struct DistanceMatrix read_distmat(FILE *f_in,float ts_tv,int fmeg){
 
 	rewind (f_in);
 	if (fmeg==1)
-		{readMatrixMegaCVS(f_in,&my_mat); }
+		{readMatrixMegaCSV(f_in,&my_mat); }
 	else
 		if(a==1)
  	    	readMatrixMega(f_in,&my_mat);
@@ -1088,7 +1088,7 @@ void usage(char *arg0)
  	fprintf(stderr,
  	"Options are:\n\
 	\t-h    : this help\n\
-	\t-m    : if present the distance Matrix is supposed to be MEGA CVS (other formats are guessed)\n\
+	\t-m    : if present the distance Matrix is supposed to be MEGA CSV (other formats are guessed)\n\
 	\t-a    : output all partitions and tree files (default only graph files)\n\
 	\t-s    : output all partitions in 's'imple results txt files\n\
 	\t-p #  : minimal a priori value (default is 0.001) -Pmin-\n\
@@ -1258,7 +1258,7 @@ char *bout;
 				break;
 
 			case 'm':
-				fmeg=1;			/*if present format mega CVS*/
+				fmeg=1;			/*if present format mega CSV*/
 			break;
 
 			 case 's':
